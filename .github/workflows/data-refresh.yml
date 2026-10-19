@@ -45,7 +45,14 @@ jobs:
           NIM_MODEL: ${{ vars.NIM_MODEL }}
           GROQ_MODEL: ${{ vars.GROQ_MODEL }}
           CF_AI_MODEL: ${{ vars.CF_AI_MODEL }}
-        run: python scripts/literature_watch.py --out report.md --append --triage
+          # Earlier issues are the record of what was already reported: the radar
+          # reads them back and skips those papers (the 45-day window overlaps the
+          # monthly run). Read-only use of the token; issues: write already covers it.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional contact for the Europe PMC User-Agent (repo variable). Unset →
+          # the UA carries the repo URL instead of a personal address.
+          LITWATCH_CONTACT: ${{ vars.LITWATCH_CONTACT }}
+        run: python scripts/literature_watch.py --out report.md --append --triage --seen-from-issues data-refresh
 
       - name: File / notify via a GitHub issue
         env:
