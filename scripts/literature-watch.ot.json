@@ -1,0 +1,29 @@
+{
+  "_note": "Example topic set for an occupational-therapy (OT) faculty literature radar — the same engine as literature-watch.json, pointed at rehabilitation questions. Run: python scripts/literature_watch.py --config scripts/literature-watch.ot.json --triage --seen-file ot-seen.json --out ot-report.md. `rubric` replaces the default triage instructions; `intro` replaces the report's opening line. Not used by the monthly Action.",
+  "days_window": 45,
+  "max_per_topic": 6,
+  "intro": "Candidate papers for an OT faculty journal club (Europe PMC, TITLE-scoped). **For review, not auto-ingested** — the LLM only sorts keep/drop; a person reads the kept ones.",
+  "rubric": "You triage scientific papers for an occupational therapy (OT) faculty literature radar. KEEP randomized controlled trials, systematic reviews, or meta-analyses that test a rehabilitation or OT intervention and report a functional outcome (for example Fugl-Meyer upper extremity, ARAT, Box and Block, ADL or Barthel, COPM, falls) in people after stroke, people with dementia, or community-dwelling older adults. DROP study protocols without results, case reports, purely mechanistic or imaging studies, diagnostic-accuracy studies, bibliometric papers, and papers that do not evaluate an intervention. Reply with JSON only: {\"verdict\":\"keep\"|\"drop\",\"reason\":\"<=4 words\"}.",
+  "topics": [
+    {
+      "id": "stroke_ue_task_oriented",
+      "label": "Stroke upper limb — task-oriented / task-specific training",
+      "query": "TITLE:stroke AND TITLE:(\"upper limb\" OR \"upper extremity\" OR arm OR hand) AND TITLE:(\"task-oriented\" OR \"task-specific\" OR \"task practice\" OR \"repetitive task\")"
+    },
+    {
+      "id": "stroke_occupational_therapy",
+      "label": "Stroke — occupational therapy interventions",
+      "query": "TITLE:stroke AND TITLE:(\"occupational therapy\" OR \"occupational therapist\" OR \"occupational therapists\")"
+    },
+    {
+      "id": "dementia_occupational_therapy",
+      "label": "Dementia — occupational therapy interventions",
+      "query": "TITLE:(dementia OR Alzheimer*) AND TITLE:(\"occupational therapy\" OR \"occupational therapist\" OR \"occupational therapists\")"
+    },
+    {
+      "id": "falls_prevention_older_adults",
+      "label": "Falls prevention in older adults (trials / reviews)",
+      "query": "TITLE:(fall OR falls) AND TITLE:prevention AND TITLE:(older OR elderly OR \"community-dwelling\") AND (randomized OR randomised OR \"systematic review\" OR \"meta-analysis\")"
+    }
+  ]
+}

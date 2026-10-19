@@ -15,14 +15,25 @@ keys, or on any error, everything is kept (identical to the keyless behaviour).
 
 Stdlib only. Robust: a topic whose query fails is reported as "could not check".
 
+De-duplication: a paper is listed once per run even if several topics match it,
+and — with ``--seen-from-issues`` (CI) or ``--seen-file`` (local) — a paper already
+listed in an earlier month is skipped. The 45-day window overlaps the monthly run,
+so without this the same paper shows up twice. The previous issues ARE the record
+of what was reported, so CI reads them back instead of keeping a state file (an
+Actions cache is evicted after 7 idle days — a monthly job would never hit it).
+Fail-open: if the history cannot be read, nothing is skipped and the report says so.
+
 Usage:
   python scripts/literature_watch.py --out report.md --append           # keyless
   python scripts/literature_watch.py --out report.md --append --triage   # + LLM filter
+  python scripts/literature_watch.py --config scripts/literature-watch.ot.json \\
+      --seen-file seen.json --triage --out report.md                     # another topic set, local
 """
 import argparse
 import datetime
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -33,9 +44,15 @@ import llm_triage
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CONFIG = os.path.join(HERE, "literature-watch.json")
-UA = {"User-Agent": "brain-exposome-litwatch/1.1 (mailto:a0972210123@gmail.com)"}
+# Europe PMC asks for a contact in the UA. Read it from the environment so no
+# personal address lives in a public repo; fall back to the project URL.
+_CONTACT = os.environ.get("LITWATCH_CONTACT", "").strip()
+UA = {"User-Agent": "brain-exposome-litwatch/1.2 "
+      + (f"(mailto:{_CONTACT})" if _CONTACT else "(+https://github.com/matt-ye/brain-exposome)")}
 EPMC = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+GH_API = "https://api.github.com"
 TIMEOUT = 30
+LINK_RE = re.compile(r"https://(?:doi\.org/[^\s)\]>]+|europepmc\.org/article/[^\s)\]>]+)")
 
 
 def epmc_search(query, since_iso, until_iso, page_size):
@@ -64,6 +81,61 @@ def link_for(rec):
     return f"https://europepmc.org/article/{src}/{rid}" if src and rid else ""
 
 
+def _title_key(title):
+    return "title:" + re.sub(r"\W+", " ", (title or "").lower()).strip()
+
+
+def paper_keys(rec):
+    """Keys that identify one paper, so the same work found twice is listed once.
+
+    Two keys, because one is not enough: Europe PMC returns the MEDLINE record (with
+    a DOI) and the PMC record (often without) as separate hits for the same article —
+    seen in the first OT run, where two papers each appeared twice. The link catches
+    re-runs; the normalised title catches the MED/PMC pair. Both are what the report
+    prints, so a past report can be read back with a regex (see keys_in_text)."""
+    keys = {_title_key(rec.get("title"))}
+    url = link_for(rec)
+    if url:
+        keys.add(url.lower().rstrip(".,;"))
+    return keys
+
+
+MD_LINK_RE = re.compile(r"\[([^\]]+)\]\((https://[^)\s]+)\)")
+
+
+def keys_in_text(text):
+    """Paper keys (links and titles) in an earlier report — the inverse of line_for."""
+    keys = {m.lower().rstrip(".,;") for m in LINK_RE.findall(text or "")}
+    keys |= {_title_key(t) for t, _ in MD_LINK_RE.findall(text or "")}
+    return keys
+
+
+def seen_from_issues(label):
+    """Paper keys already listed in this repo's earlier issues with `label`.
+
+    Returns (keys, error). Needs GITHUB_REPOSITORY + GH_TOKEN/GITHUB_TOKEN, which
+    Actions provides; anything else is an error and the caller fails open."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        return set(), "GITHUB_REPOSITORY / GH_TOKEN not set"
+    keys = set()
+    try:
+        for page in range(1, 6):                       # ≤500 issues is years of monthly runs
+            q = urllib.parse.urlencode({"labels": label, "state": "all", "per_page": 100, "page": page})
+            req = urllib.request.Request(f"{GH_API}/repos/{repo}/issues?{q}", headers={
+                **UA, "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
+            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+                batch = json.loads(r.read().decode("utf-8", "replace"))
+            for issue in batch:
+                keys |= keys_in_text(issue.get("body"))
+            if len(batch) < 100:
+                break
+    except (urllib.error.URLError, urllib.error.HTTPError, ValueError, TimeoutError) as e:
+        return set(), type(e).__name__
+    return keys, None
+
+
 def line_for(rec, verdict=None):
     title = (rec.get("title") or "").rstrip(".")
     url = link_for(rec)
@@ -77,19 +149,41 @@ def main():
     ap.add_argument("--out", default="")
     ap.add_argument("--append", action="store_true")
     ap.add_argument("--triage", action="store_true", help="LLM keep/drop filter if provider keys are set")
+    ap.add_argument("--config", default=CONFIG, help="topic set (default: literature-watch.json)")
+    ap.add_argument("--seen-from-issues", metavar="LABEL", default="",
+                    help="skip papers already listed in earlier issues with this label (CI)")
+    ap.add_argument("--seen-file", default="",
+                    help="JSON list of already-reported paper keys; read, then updated (local runs)")
     args = ap.parse_args()
 
-    cfg = json.load(open(CONFIG, encoding="utf-8"))
+    cfg = json.load(open(args.config, encoding="utf-8"))
+    config_name = os.path.basename(args.config)
     window = int(cfg.get("days_window", 45))
     per_topic = int(cfg.get("max_per_topic", 6))
     until = datetime.date.today()
     since = until - datetime.timedelta(days=window)
     since_iso, until_iso = since.isoformat(), until.isoformat()
 
+    if cfg.get("rubric"):                 # a topic set may judge relevance by its own rules
+        llm_triage.RUBRIC = cfg["rubric"]
     do_triage = args.triage and llm_triage.available()
 
+    seen, seen_note = set(), ""
+    if args.seen_from_issues:
+        seen, err = seen_from_issues(args.seen_from_issues)
+        seen_note = (f"⚠️ could not read earlier issues ({err}) — papers from previous months may repeat"
+                     if err else f"{len(seen)} paper(s) from earlier `{args.seen_from_issues}` issues")
+    if args.seen_file and os.path.exists(args.seen_file):
+        try:
+            seen |= set(json.load(open(args.seen_file, encoding="utf-8")))
+        except ValueError:
+            seen_note = f"⚠️ {args.seen_file} unreadable — papers from previous runs may repeat"
+    listed = set()                        # keys printed this run (also dedups across topics)
+    skipped_seen = skipped_dup = 0
+
     L = [f"## 📚 New literature — last {window} days ({since_iso} → {until_iso})\n"]
-    L.append("Candidate papers for the figures the map uses (Europe PMC, TITLE-scoped). "
+    L.append(cfg.get("intro") or
+             "Candidate papers for the figures the map uses (Europe PMC, TITLE-scoped). "
              "**For review, not auto-ingested** — if one updates a number we use, follow "
              "extract→review→register.")
     # Filled in after the loop — the header has to name the model that actually
@@ -112,6 +206,14 @@ def main():
 
         keeps, drops = [], []
         for r in results:
+            ks = paper_keys(r)
+            if ks & seen:
+                skipped_seen += 1
+                continue
+            if ks & listed:
+                skipped_dup += 1
+                continue
+            listed |= ks
             v = None
             if do_triage:
                 triage_tried += 1
@@ -158,8 +260,24 @@ def main():
                           "filtered and every candidate below is listed. Check the provider keys "
                           "and `scripts/llm_triage.py`._\n")
 
+    dedup = []
+    if skipped_seen:
+        dedup.append(f"{skipped_seen} already reported in an earlier run")
+    if skipped_dup:
+        dedup.append(f"{skipped_dup} duplicate record(s) (same paper twice in Europe PMC, or in several topics)")
+    if seen_note.startswith("⚠️"):
+        L.append(f"_{seen_note}._\n")
+    elif dedup:
+        L.append(f"_Skipped: {'; '.join(dedup)}._\n")
+
     L.append(f"> {total_keep} candidate(s) to review across {len(cfg['topics'])} topics. "
-             "Queries live in `scripts/literature-watch.json`.")
+             f"Queries live in `scripts/{config_name}`.")
+
+    if args.seen_file:
+        tmp = args.seen_file + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(sorted(seen | listed), f, ensure_ascii=False, indent=0)
+        os.replace(tmp, args.seen_file)
 
     report = "\n".join(L)
     if args.out:
@@ -170,7 +288,8 @@ def main():
     else:
         sys.stdout.buffer.write(report.encode("utf-8"))
     print(f"\n[litwatch] {total_keep} kept across {len(cfg['topics'])} topics "
-          f"({since_iso}→{until_iso}) triage={'on' if do_triage else 'off'}", file=sys.stderr)
+          f"({since_iso}→{until_iso}) triage={'on' if do_triage else 'off'} "
+          f"skipped_seen={skipped_seen} skipped_dup={skipped_dup}", file=sys.stderr)
 
 
 if __name__ == "__main__":

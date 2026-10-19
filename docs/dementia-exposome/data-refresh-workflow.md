@@ -168,6 +168,13 @@ raw 輸入放 gitignored `scripts/_data_in/`；`manifest.json` 由 build 產生�
 - **台灣特例**：因地緣政治，台灣常被 GBD/WHO/World Bank 排除 → `taiwan_cognitive` 主題 + `data-versions.json` 的兩個台灣政府源（內政部戶政司、國健署 NHIS）是補台灣缺口的方式。
 - 已找到的候選論文存 [`literature-candidates.md`](./literature-candidates.md)（人工 backlog）。
 - **雜訊**：TITLE 限定後每主題每月個位數～十幾筆（危險因子那條最吵）。
+- **去重（2026-10）**：每篇論文用兩個鍵辨識——連結（DOI 或 Europe PMC 頁）與正規化標題。標題鍵是必要的：Europe PMC 會把同一篇文章的 MEDLINE 紀錄（有 DOI）與 PMC 紀錄（常無 DOI）當兩筆回傳。
+  - 同一次執行內：跨主題、跨紀錄只列一次。
+  - 跨月：Action 以 `--seen-from-issues data-refresh` 讀回過去的 issue 內文，抽出已列過的連結與標題後跳過（45 天窗與月跑會重疊）。**issue 本身就是紀錄**，不另存 state 檔（Actions cache 7 天沒用就被清，月跑撐不到）。讀不到時 fail-open，報告會寫明「可能重複」。
+  - 本機：`--seen-file seen.json`（讀入後更新）。跳過的論文在送 LLM 之前就略過，不花額度。
+- **其他主題集**：`--config` 換設定檔；設定檔可帶 `rubric`（取代預設的 keep/drop 判準）與 `intro`（報告開頭說明）。範例：`scripts/literature-watch.ot.json`（職能治療教師文獻雷達，不進月跑）。
+- **聯絡資訊**：Europe PMC 建議 UA 帶聯絡方式；改讀 `LITWATCH_CONTACT`（repo variable），未設則帶 repo 網址，公開 repo 不放個人信箱。
+- 離線測試：`python -m unittest tests/test_literature_watch.py`。
 
 ### 5.5 v2 LLM 相關性篩選 `scripts/llm_triage.py`（已實作，可選、需 secret）
 - **仿照 owner 的 dreamcatcher `ai-worker`**：同一條備援鏈 **NVIDIA NIM → Groq → Cloudflare**、同樣的環境變數名、同樣的 robust JSON 解析；差別只是這裡問「這篇是否可能更新我們用的某個數值？」回 `{"verdict":"keep|drop","reason":...}`。
