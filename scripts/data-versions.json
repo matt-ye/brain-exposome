@@ -60,6 +60,11 @@
       "mode": "manual", "current_year": 2025,
       "url": "https://www.ris.gov.tw/app/portal/346"
     },
+    "korea_nid_dementia": {
+      "label": "🇰🇷 보건복지부·중앙치매센터 시군구별 치매현황 (data.go.kr #15073342) → KR province dementia 60+; yearly, file lands in scripts/_data_in/kr_nid/",
+      "mode": "manual", "current_year": 2025,
+      "url": "https://www.data.go.kr/data/15073342/fileData.do"
+    },
     "taiwan_nhis_riskfactors": {
       "label": "🇹🇼 衛福部國健署 NHIS — Taiwan smoking / inactivity (WHO GHO has no Taiwan row)",
       "mode": "manual", "current_version": "2021 NHIS",

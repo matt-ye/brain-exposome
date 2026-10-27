@@ -41,8 +41,11 @@ Priority order is top-to-bottom within each country.
 
 ## 🇰🇷 South Korea
 
+**Primary since 2026-10-27:** row 0 alone builds the KR layer (`build_kr_nid_prev60`); rows 1–3 are the old GBD×KOSIS fallback, used only when no `kr_nid/*.csv` is present.
+
 | # | Feeds | Direct page | Export | Save as |
 |---|---|---|---|---|
+| 0 | **Province (17) prevalence, official estimate** | 공공데이터포털 **data.go.kr/data/15073342** 「보건복지부_시군구별 치매현황」 (yearly, 2016→; KOGL Type 1) | 「다운로드」 CSV (cp949) — plain HTTP download works, no login | `kr_nid/<original filename>.csv` |
 | 1 | **Province (17) prevalence** — population half | KOSIS **kosis.kr/eng** → Population, table *Population by Administrative District (시도) and Age* (인구총조사) | Download CSV | `kr-admin1-pop.csv` |
 | 2 | Prevalence **rates** half | 중앙치매센터 National Institute of Dementia — **nid.or.kr** 「대한민국 치매현황」 annual report (age-band 유병률) | Copy the age-band prevalence % table (or save the report PDF) | `kr-dementia-rates.csv` |
 | 3 | Fallback rates | IHME **GBD Results** (as JP #3, Location *Republic of Korea*) | CSV export | `kr-gbd-prev.csv` |

@@ -842,6 +842,68 @@ def load_kosis_kr_pop():
     return out or None
 
 
+# Korea's own official estimate replaces GBD×KOSIS for the KR layer: 보건복지부/중앙치매센터
+# 「시군구별 치매현황」 (data.go.kr #15073342, KOGL Type 1 = attribution only). Its yearly figure is
+# the 2023 national dementia epidemiological survey's sex×age rates × that year's mid-year resident
+# population, so it is still an estimate, but on Korean survey rates rather than GBD's.
+KR_NID_URL = "https://www.data.go.kr/data/15073342/fileData.do"
+KR_SIDO = {"서울특별시": "KR-11", "부산광역시": "KR-26", "대구광역시": "KR-27", "인천광역시": "KR-28",
+           "광주광역시": "KR-29", "대전광역시": "KR-30", "울산광역시": "KR-31", "세종특별자치시": "KR-50",
+           "경기도": "KR-41", "강원도": "KR-42", "강원특별자치도": "KR-42", "충청북도": "KR-43",
+           "충청남도": "KR-44", "전라북도": "KR-45", "전북특별자치도": "KR-45", "전라남도": "KR-46",
+           "경상북도": "KR-47", "경상남도": "KR-48", "제주특별자치도": "KR-49"}
+KR_NID_BAND = {"60-64세": "60_64", "65-69세": "65_69", "70-74세": "70_74", "75-79세": "75_79",
+               "80-84세": "80_84", "85세이상": "85p"}
+
+
+def build_kr_nid_prev60(units):
+    """_data_in/kr_nid/*.csv (cp949; one row per year×시도×시군구×sex×age band) -> kr-modelled.json.
+       Uses the latest year, sex=전체, and each 시도's own total row (시군구 == 시도), so 구 sub-rows
+       inside 시 are never double-counted. Labels drift between years ('60세 이상' vs '60세이상',
+       '6.83%' vs '6.83'), hence the space/percent stripping. Returns True if built."""
+    import csv
+    import glob
+    files = sorted(glob.glob(os.path.join(DATA_IN, "kr_nid", "*.csv")))
+    if not files:
+        return False
+    with open(files[-1], encoding="cp949", newline="") as f:
+        rows = [r for r in csv.DictReader(f) if r["성별"] == "전체" and r["시군구"] == r["시도"]]
+    if not rows:
+        return False
+    year = max(r["연도"] for r in rows)
+    pct = lambda r: float(r["추정치매환자유병률"].replace("%", ""))
+    age = lambda r: r["연령별"].replace(" ", "")
+    codes = {u["code"] for u in units}
+    by_unit, national, bands = {}, None, []
+    for r in rows:
+        if r["연도"] != year:
+            continue
+        if r["시도"] == "전국":
+            if age(r) == "60세이상":
+                national = round(pct(r), 1)
+            elif age(r) in KR_NID_BAND:
+                bands.append({"band": KR_NID_BAND[age(r)], "prevalence_pct": round(pct(r), 2)})
+        elif age(r) == "60세이상" and KR_SIDO.get(r["시도"]) in codes:
+            by_unit[KR_SIDO[r["시도"]]] = round(pct(r), 2)
+    if len(by_unit) < 17 or national is None:
+        log(f"  South Korea: kr_nid CSV gave {len(by_unit)}/17 provinces for {year} -> fallback")
+        return False
+    bands.sort(key=lambda b: POP60_BANDS.index(b["band"]))
+    src = f"보건복지부·중앙치매센터 시군구별 치매현황 {year} (data.go.kr #15073342)"
+    write_json("dementia/kr-modelled.json", {
+        "meta": {"metric": "estimated dementia prevalence among residents aged 60+ (%)",
+                 "age_group": "60+", "resolution": "admin1", "year": int(year),
+                 "source": src, "url": KR_NID_URL,
+                 "note": (f"ESTIMATE by Korea MOHW/National Institute of Dementia: 2023 national "
+                          f"dementia epidemiological survey sex×age rates × {year} mid-year resident "
+                          "population; KOGL Type 1 (attribution)"),
+                 "national_prevalence_60plus_pct": national,
+                 "age_bands": bands, "built": BUILD_DATE},
+        "byTown": by_unit})
+    log(f"  South Korea: NID official estimate {year} (60+) for {len(by_unit)} provinces, national {national}%")
+    return True
+
+
 def build_pop_rate_prev60(cc, name, gbd_country, units, pop, pop_source=None):
     """Model admin-1 dementia prevalence among 60+ (%) = Σ(band pop × GBD band rate) / 60+ pop.
        Age bands are read from the pop dict (keys minus 'total'), so this serves both the JP/KR
@@ -1498,6 +1560,8 @@ def main():
             pop_rate = {"jp": ("Japan", load_estat_jp_pop),
                         "kr": ("Republic of Korea", load_kosis_kr_pop)}.get(key)
             done = key in GBD_DIRECT and build_gbd_direct(key, cfg["name"], units, GBD_DIRECT[key])
+            if not done and key == "kr":
+                done = build_kr_nid_prev60(units)
             if not done and pop_rate:
                 done = build_pop_rate_prev60(key, cfg["name"], pop_rate[0], units, pop_rate[1]())
             if not done and key in WORLDPOP:
@@ -1533,7 +1597,7 @@ def main():
         "dementia/mx-modelled.json": "Mexico state dementia prevalence 60+, GBD 2023 (IHME) — modelled estimate",
         "dementia/ir-modelled.json": "Iran province dementia prevalence 60+, GBD 2023 (IHME) — modelled estimate",
         "dementia/jp-modelled.json": "Japan prefecture dementia prevalence 60+, GBD 2023 rates × e-Stat pop — modelled estimate",
-        "dementia/kr-modelled.json": "Korea province dementia prevalence 60+, GBD 2023 rates × KOSIS pop — modelled estimate"}
+        "dementia/kr-modelled.json": "Korea province dementia prevalence 60+, MOHW/NID 시군구별 치매현황 (KOGL Type 1) — official estimate"}
     for key, cfg in COUNTRY_MAPS.items():   # admin-1 PM2.5 (+ boundaries) per country
         assets[f"pm25/{key}-admin1-pm25.json"] = f"ACAG V6.GL.03 {cfg['name']} admin-1 PM2.5 (CC BY 4.0)"
         assets[f"geo/{key}-admin1.geojson"] = f"Natural Earth admin-1 ({cfg['name']}), public domain"

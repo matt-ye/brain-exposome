@@ -81,7 +81,7 @@ OV = {
  "JP": {"aging": a("e-Stat", "https://www.e-stat.go.jp/en/", "2024", "e-Stat 都道府県", "https://www.e-stat.go.jp/en/", "2024"),
         "prevalence": p("Hisayama/Ninomiya", "https://doi.org/10.1186/s13195-025-01909-1", "2022", "Toyama 都道府県推估", "https://doi.org/10.1186/s12877-021-02540-z", "2020–45")},
  "KR": {"aging": a("KOSIS / World Bank", "https://kosis.kr/eng/", "2025", "KOSIS 시도", "https://kosis.kr/eng/", "2024"),
-        "prevalence": p("NaSDEK / 중앙치매센터", "https://www.nid.or.kr", "2023", "NID 시도", "https://www.nid.or.kr", "2023")},
+        "prevalence": p("NaSDEK / 중앙치매센터", "https://www.nid.or.kr", "2023", "중앙치매센터 시군구별 치매현황（2023 역학조사율）", "https://www.data.go.kr/data/15073342/fileData.do", "2025")},
  "CN": {"aging": a("國家統計局 7 普", "https://www.stats.gov.cn/english/", "2020", "NBS 省級", "https://www.stats.gov.cn/english/", "2020"),
         "prevalence": p("Jia 2020", "https://www.thelancet.com/journals/lanpub/article/PIIS2468-2667(20)30185-7/fulltext", "2015–18", "Liu-Gao 2024（28 省）", "https://pmc.ncbi.nlm.nih.gov/articles/PMC11225804/", "2018")},
  "TH": {"aging": a("NSO（2025 普查）", "https://www.nso.go.th/nsoweb/index?set_lang=en", "2025", "NSO 府級", "https://www.nso.go.th/nsoweb/index?set_lang=en", "2025"),
