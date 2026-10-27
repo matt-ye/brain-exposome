@@ -892,7 +892,7 @@ def build_kr_nid_prev60(units):
     src = f"보건복지부·중앙치매센터 시군구별 치매현황 {year} (data.go.kr #15073342)"
     write_json("dementia/kr-modelled.json", {
         "meta": {"metric": "estimated dementia prevalence among residents aged 60+ (%)",
-                 "age_group": "60+", "resolution": "admin1", "year": int(year),
+                 "age_group": "60+", "resolution": "admin1",
                  "source": src, "url": KR_NID_URL,
                  "note": (f"ESTIMATE by Korea MOHW/National Institute of Dementia: 2023 national "
                           f"dementia epidemiological survey sex×age rates × {year} mid-year resident "
