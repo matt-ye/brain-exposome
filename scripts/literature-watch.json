@@ -1,5 +1,7 @@
 {
   "_note": "Literature radar for the monthly data-refresh Action. Each topic is a tuned Europe PMC query (keyless, covers PubMed + PMC + Agricola + preprints) for a figure the map cares about. The Action reports papers published in the last `days_window` days per topic — candidates for a human (or the optional v2 LLM triage) to judge; it NEVER auto-ingests. Broad queries are noisy, so queries are TITLE-scoped; widen/narrow here as needed.",
+  "ledger": "public/data/data-provenance.json",
+  "_ledger_note": "With --triage, the LLM only reads each abstract into facts (layer, countries, data year, dataset); scripts/triage_rules.py keeps a paper only if its data are newer than what this ledger says the map uses for that country and layer. Remove `ledger` to fall back to the plain keep/drop rubric.",
   "days_window": 45,
   "max_per_topic": 6,
   "topics": [

@@ -183,6 +183,17 @@ raw 輸入放 gitignored `scripts/_data_in/`；`manifest.json` 由 build 產生�
 - **啟用方式**：把 dreamcatcher `.env` 的 `NVIDIA_API_KEY`／`GROQ_API_KEY`（＋可選 `CF_ACCOUNT_ID`+`CF_API_TOKEN` 走 Cloudflare REST）設為 repo secrets（`Settings → Secrets → Actions`）。範本見 `scripts/.env.example`。Cloudflare 這層在 Worker 裡是 `AI` binding、在 Action 裡改用 REST API。
 - ⚠️ 供應商現況（2026-07 研究）：**GitHub Models 已退役**、**ChatGPT/Codex 訂閱不能從 CI 呼叫**；Groq／NVIDIA／Cloudflare 三者皆 $0 免卡。
 
+### 5.6 帳本比對 triage（2026-10，`literature-watch.json` 的 `ledger`）
+- **為什麼改**：舊 rubric 只問「這篇有沒有報告新盛行率」，模型不知道網站現在用什麼。8–10 月 6 次 issue 去重後 52 篇、留下 15 篇，真正能更新網站的只有 1 篇（韓國 Jung 2026）。被誤留的典型：中國 CMHS（資料 2013–15，網站已用 CHARLS 2018）、歐洲 GBD 2023（網站本來就用 GBD 2023）。**新論文 ≠ 新數據**。
+- **分工**：模型只把摘要讀成事實（`llm_triage.extract`：圖層、量測類型、一般族群或次族群、方法、國家、資料收集截止年、資料集名）；`scripts/triage_rules.py` 拿事實去比 `public/data/data-provenance.json` 裡該國該圖層的現用來源與資料年。
+- **判定**：
+  - **保留**：資料年 > 現用（先比次國家層級來源，再比全國）；或該國該圖層還沒有來源；或資料年讀不出來（fail-open）。
+  - **收合（較舊／同一份數據）**：資料年 ≤ 現用，或資料集與現用來源相同（例：都是 GBD）。理由會寫出比較，例如「data 2015 ≤ CN in use Liu-Gao 2024（28 省）(2018)」。
+  - **收合（非估計值）**：沒有族群層級數字、次族群（病人、癌症存活者等）、量測類型不符（例：相對風險不能更新盛行率圖層）、MCI／SCD 用申報診斷。
+- **好處**：帳本一更新（例如韓國換成 2025 官方推估），triage 自動跟著變，不必改 prompt。
+- 沒有 `ledger` 的主題集（例如 OT）照舊用 rubric 判 keep/drop。帳本讀不到 → 退回 rubric，報告會註明。
+- 離線測試：`python -m unittest tests/test_triage_rules.py`（測資＝8–10 月實際被誤留的論文）。
+
 ---
 
 ## 6. 手動 refresh runbook（自動化前的暫用流程）

@@ -41,8 +41,10 @@ import urllib.parse
 import urllib.request
 
 import llm_triage
+import triage_rules
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(HERE)
 CONFIG = os.path.join(HERE, "literature-watch.json")
 # Europe PMC asks for a contact in the UA. Read it from the environment so no
 # personal address lives in a public repo; fall back to the project URL.
@@ -167,6 +169,14 @@ def main():
     if cfg.get("rubric"):                 # a topic set may judge relevance by its own rules
         llm_triage.RUBRIC = cfg["rubric"]
     do_triage = args.triage and llm_triage.available()
+    # Ledger mode: judge each paper against what the map uses now (see triage_rules.py).
+    # Fail-open like everything else here: no readable ledger → the old keep/drop rubric.
+    ledger, ledger_note = None, ""
+    if do_triage and cfg.get("ledger"):
+        try:
+            ledger = triage_rules.load_ledger(os.path.join(ROOT, cfg["ledger"]))
+        except (OSError, ValueError, KeyError) as e:
+            ledger_note = f"⚠️ ledger `{cfg['ledger']}` unreadable ({type(e).__name__}) — fell back to the plain rubric"
 
     seen, seen_note = set(), ""
     if args.seen_from_issues:
@@ -217,7 +227,15 @@ def main():
             v = None
             if do_triage:
                 triage_tried += 1
-                v = llm_triage.triage(r.get("title", ""), r.get("abstractText", ""))
+                if ledger:
+                    facts = llm_triage.extract(r.get("title", ""), r.get("abstractText", ""), hint=label)
+                    if facts:
+                        bucket, why = triage_rules.decide(facts, ledger)
+                        v = {"verdict": "keep" if bucket == triage_rules.UPDATE else "drop",
+                             "reason": why, "bucket": bucket,
+                             "tier": facts.get("tier"), "model": facts.get("model")}
+                else:
+                    v = llm_triage.triage(r.get("title", ""), r.get("abstractText", ""))
                 if v:
                     triaged_by.add(f"{v.get('tier', '?')}/`{v.get('model', '?')}`")
                 time.sleep(1)                      # gentle pacing for free-tier TPM
@@ -251,6 +269,11 @@ def main():
 
     if not do_triage:
         L[triage_line] = "_Keyless: all candidates listed (set provider secrets + `--triage` to filter)._\n"
+    elif triaged_by and ledger:
+        L[triage_line] = (f"_🤖 Facts read by {', '.join(sorted(triaged_by))}, then compared with "
+                          f"`{cfg['ledger']}` (what the map uses now, per country and layer). Kept = newer "
+                          "data or a gap; older / same-data / non-estimate papers are collapsed with the "
+                          "comparison that ruled them out._\n")
     elif triaged_by:
         L[triage_line] = f"_🤖 LLM-triaged by {', '.join(sorted(triaged_by))}; drops are collapsed._\n"
     elif not triage_tried:
@@ -265,6 +288,8 @@ def main():
         dedup.append(f"{skipped_seen} already reported in an earlier run")
     if skipped_dup:
         dedup.append(f"{skipped_dup} duplicate record(s) (same paper twice in Europe PMC, or in several topics)")
+    if ledger_note:
+        L.append(f"_{ledger_note}._\n")
     if seen_note.startswith("⚠️"):
         L.append(f"_{seen_note}._\n")
     elif dedup:

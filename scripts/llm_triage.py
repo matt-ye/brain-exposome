@@ -45,6 +45,13 @@ UA = "brain-exposome-literature-watch/1.0 (+https://github.com/matt-ye/brain-exp
 # max_tokens is a ceiling, not a bill, so the non-reasoning tiers pay nothing for
 # the headroom.
 MAX_TOKENS = 400
+# Ledger-mode extraction writes nine fields, not one word, and gpt-oss reasons at length
+# about each of them: at 400 *and* at 1200 Groq answered 400 json_validate_failed with an
+# empty generation, and without JSON mode it stopped on `length` before writing anything
+# (measured 2026-10-27, 11 of 52 abstracts). reasoning_effort=low fixed every one of them
+# (~1 s, 110–300 tokens). Only gpt-oss gets the flag; a model that rejects it 400s and the
+# candidate loop moves on.
+EXTRACT_MAX_TOKENS = 1200
 
 RUBRIC = (
     "You triage scientific papers for a brain-health data map. Decide whether this paper could "
@@ -58,9 +65,42 @@ RUBRIC = (
 )
 
 
-def _messages(title, abstract):
+# Ledger mode (literature-watch.json "ledger"): the model only READS the abstract into
+# facts; scripts/triage_rules.py compares them with what the map uses now. Asking the
+# model "is this new?" without telling it what the map has is how 2013–15 data got kept.
+EXTRACT_RUBRIC = (
+    "You read a scientific abstract and report FACTS about it for a brain-health data map. "
+    "Do not judge novelty. Fields:\n"
+    "estimate: true if it reports a population-level number (prevalence, incidence, relative risk, "
+    "attributable fraction, population share or projection, exposure level), else false.\n"
+    "layer: which map figure the number is about — dementia_prevalence, mci, scd (subjective "
+    "cognitive decline), aging (population 65+), pm25 (PM2.5 exposure levels), paf (dementia risk "
+    "factors: relative risks or attributable fractions, incl. air pollution → dementia), hypertension, "
+    "diabetes, obesity, smoking, physical_inactivity, or none.\n"
+    "measure: prevalence | incidence | relative_risk | paf | share | projection | exposure | other.\n"
+    "population: general (community / national population) or subgroup (patients, survivors, one "
+    "occupation, clinic or hospital sample, people already diagnosed, or estimates AMONG people who "
+    "already have a disease, e.g. 'prevalence of X in people with diabetes').\n"
+    "method: survey | administrative (insurance / claims / registry diagnoses) | modelled | "
+    "meta_analysis | other.\n"
+    "representative: true if the sample stands for a whole country or region (nationally "
+    "representative survey, national registry or insurance database, or a pooled / modelled estimate "
+    "for whole countries); false for local cohorts, single sites, a few cities, or convenience samples.\n"
+    "countries: ISO 3166-1 alpha-2 codes of the countries the estimate covers; [\"GLOBAL\"] for "
+    "global or multi-region estimates.\n"
+    "data_end_year: the last year the DATA were collected (not the publication year); null if not "
+    "stated.\n"
+    "dataset: short name of the underlying survey or database (e.g. \"GBD 2023\", \"CHARLS\", "
+    "\"NHATS\", \"NHIS claims\"), or \"\".\n"
+    "reason: <=6 words.\n"
+    'Reply with JSON only: {"estimate":..,"layer":..,"measure":..,"population":..,"method":..,'
+    '"representative":..,"countries":[..],"data_end_year":..,"dataset":..,"reason":..}.'
+)
+
+
+def _messages(title, abstract, system=None):
     return [
-        {"role": "system", "content": RUBRIC},
+        {"role": "system", "content": system or RUBRIC},
         {"role": "user", "content": f"TITLE: {title}\n\nABSTRACT: {abstract or '(none)'}"},
     ]
 
@@ -215,7 +255,7 @@ def _stamp(verdict, model, how):
 
 
 # ── providers: return a verdict dict, or None if unconfigured ──
-def _openai_chat(provider, url, key, title, abstract, env):
+def _openai_chat(provider, url, key, title, abstract, env, system=None, parse=None):
     """Try each candidate until one returns a parsable verdict.
 
     Falling through inside a provider matters as much as falling through between them.
@@ -224,13 +264,17 @@ def _openai_chat(provider, url, key, title, abstract, env):
     candidate failing says nothing about the second.
     """
     last = None
+    extracting = system == EXTRACT_RUBRIC
     for model in candidates(provider, env):
+        payload = {"model": model,
+                   "messages": _messages(title, abstract, system), "temperature": 0.1,
+                   "max_tokens": EXTRACT_MAX_TOKENS if extracting else MAX_TOKENS,
+                   "response_format": {"type": "json_object"}}
+        if extracting and "gpt-oss" in model:
+            payload["reasoning_effort"] = "low"
         try:
-            d = _post(url, {"Authorization": f"Bearer {key}"},
-                      {"model": model,
-                       "messages": _messages(title, abstract), "temperature": 0.1,
-                       "max_tokens": MAX_TOKENS, "response_format": {"type": "json_object"}})
-            v = _parse(d["choices"][0]["message"]["content"])
+            d = _post(url, {"Authorization": f"Bearer {key}"}, payload)
+            v = (parse or _parse)(d["choices"][0]["message"]["content"])
             if v:
                 return _stamp(v, model, f"{provider} candidate")
             last = ValueError(f"{provider}: {model} returned no usable verdict")
@@ -241,23 +285,23 @@ def _openai_chat(provider, url, key, title, abstract, env):
     return None
 
 
-def _nim(title, abstract, env):
+def _nim(title, abstract, env, system=None, parse=None):
     key = env.get("NVIDIA_API_KEY")
     if not key:
         return None
     return _openai_chat("nim", "https://integrate.api.nvidia.com/v1/chat/completions",
-                        key, title, abstract, env)
+                        key, title, abstract, env, system, parse)
 
 
-def _groq(title, abstract, env):
+def _groq(title, abstract, env, system=None, parse=None):
     key = env.get("GROQ_API_KEY") or env.get("GroqCloud_API_KEY")
     if not key:
         return None
     return _openai_chat("groq", "https://api.groq.com/openai/v1/chat/completions",
-                        key, title, abstract, env)
+                        key, title, abstract, env, system, parse)
 
 
-def _cloudflare(title, abstract, env):
+def _cloudflare(title, abstract, env, system=None, parse=None):
     acct, tok = env.get("CF_ACCOUNT_ID"), env.get("CF_API_TOKEN")
     if not (acct and tok):
         return None
@@ -266,8 +310,9 @@ def _cloudflare(title, abstract, env):
         try:
             d = _post(f"https://api.cloudflare.com/client/v4/accounts/{acct}/ai/run/{model}",
                       {"Authorization": f"Bearer {tok}"},
-                      {"messages": _messages(title, abstract), "max_tokens": MAX_TOKENS})
-            v = _parse(d.get("result", {}).get("response"))
+                      {"messages": _messages(title, abstract, system),
+                       "max_tokens": EXTRACT_MAX_TOKENS if system == EXTRACT_RUBRIC else MAX_TOKENS})
+            v = (parse or _parse)(d.get("result", {}).get("response"))
             if v:
                 return _stamp(v, model, "cf candidate")
             last = ValueError(f"cf: {model} returned no usable verdict")
@@ -288,18 +333,51 @@ def available(env=None):
                 or (e.get("CF_ACCOUNT_ID") and e.get("CF_API_TOKEN")))
 
 
-def triage(title, abstract="", env=None):
+def triage(title, abstract="", env=None, system=None, parse=None):
     """Return {'verdict','reason','tier','model','how'} from the first working provider, or None."""
     e = env or os.environ
     for fn in TIERS:
         try:
-            v = fn(title, abstract, e)
+            v = fn(title, abstract, e, system, parse)
             if v:
                 v["tier"] = fn.__name__.lstrip("_")
                 return v
         except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, TimeoutError):
             continue
     return None
+
+
+def extract(title, abstract="", hint="", env=None):
+    """Ledger mode: facts about the paper (see EXTRACT_RUBRIC), or None if every tier failed.
+    `hint` names the search topic that found it — context, not a constraint."""
+    text = f"{abstract or '(none)'}" + (f"\n\n(Found by a search for: {hint})" if hint else "")
+    return triage(title, text, env, EXTRACT_RUBRIC, _parse_facts)
+
+
+_LAYER_ALIAS = {"dementia": "prevalence", "dementia_prevalence": "prevalence",
+                "mild_cognitive_impairment": "mci", "subjective_cognitive_decline": "scd",
+                "air_pollution": "paf", "inactivity": "physical_inactivity", "ageing": "aging"}
+
+
+def _parse_facts(content):
+    if content is None:
+        return None
+    o = content if isinstance(content, dict) else None
+    if o is None:
+        m = re.search(r"\{[\s\S]*\}", str(content))
+        try:
+            o = json.loads(m.group(0)) if m else None
+        except ValueError:
+            o = None
+    if not isinstance(o, dict) or "estimate" not in o or "layer" not in o:
+        return None
+    est = o.get("estimate")
+    o["estimate"] = est is True or str(est).lower() == "true"
+    # Models name the topic rather than the layer id now and then ("dementia" for prevalence).
+    o["layer"] = _LAYER_ALIAS.get(str(o.get("layer") or "").lower(), o.get("layer"))
+    if not isinstance(o.get("countries"), list):
+        o["countries"] = []
+    return o
 
 
 def _parse(content):
