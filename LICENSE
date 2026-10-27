@@ -52,6 +52,7 @@ sources in `isBasedOn`. Terms that matter in practice:
     Natural Earth boundaries           public domain
     National statistics offices        each its own terms; see the per-record source
     GBD 2023 (IHME)                    non-commercial + attribution — see the exception
+    Korea MOHW / NID dementia status   KOGL Type 1 (attribution) — KR dementia layer
     Livingston et al., Lancet 2024     relative risks quoted with citation
 
 Raw upstream files are deliberately not redistributed here; only derived per-unit values
