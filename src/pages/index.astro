@@ -2152,7 +2152,8 @@ const PREV_METHOD = {
   kr: { mZh: '各市道失智盛行率（60 歲以上）直接採用韓國保健福祉部・中央失智中心的官方推估：以 2023 年全國失智流行病學調查的性別年齡別盛行率，乘上 2025 年年中居民人口。下列為全國年齡別率。',
         mEn: 'Province prevalence (60+) taken directly from the official estimate by Korea’s MOHW / National Institute of Dementia: 2023 national dementia epidemiological survey sex × age rates × 2025 mid-year resident population. National age-band rates below.',
         sZh: '保健福祉部・중앙치매센터〈시군구별 치매현황〉<a href="https://www.data.go.kr/data/15073342/fileData.do" target="_blank" rel="noopener">data.go.kr #15073342</a>（資料 2025，公共누리第 1 類）',
-        sEn: 'MOHW / National Institute of Dementia, Si-gun-gu dementia status <a href="https://www.data.go.kr/data/15073342/fileData.do" target="_blank" rel="noopener">data.go.kr #15073342</a> (data 2025, KOGL Type 1)' },
+        sEn: 'MOHW / National Institute of Dementia, Si-gun-gu dementia status <a href="https://www.data.go.kr/data/15073342/fileData.do" target="_blank" rel="noopener">data.go.kr #15073342</a> (data 2025, KOGL Type 1)',
+        accessed: '2026-10-27' },
 };
 PREV_METHOD.br = PREV_METHOD.us; PREV_METHOD.mx = PREV_METHOD.us;
 PREV_METHOD.ir = { mZh: '各省失智盛行率（60 歲以上）直接採用 GBD 2023 (IHME) 的省級估計值。東／西亞塞拜然省 GBD 無單獨資料，維持灰色。',
@@ -2191,7 +2192,7 @@ function renderPrevTable(cc, meta) {
     html += `<table class="prev-method-table"><thead><tr><th>${L('年齡層', 'Age group')}</th><th>${L('年齡別失智盛行率', 'Age-band prevalence')}</th></tr></thead><tbody>`
       + rows + `<tr class="prev-method-total"><td>${natLabel}</td><td>${nat != null ? (+nat).toFixed(1) + '%' : '—'}</td></tr></tbody></table>`;
   }
-  html += `<p class="prev-method-src">${L('資料來源：', 'Sources: ')}${L(m.sZh, m.sEn)}｜${L('存取日', 'accessed')} ${DATA_ACCESSED}｜${L('模型估計，非實測', 'modelled estimate, not measured')}</p>`;
+  html += `<p class="prev-method-src">${L('資料來源：', 'Sources: ')}${L(m.sZh, m.sEn)}｜${L('存取日', 'accessed')} ${m.accessed || DATA_ACCESSED}｜${L('模型估計，非實測', 'modelled estimate, not measured')}</p>`;
   box.style.display = '';
   box.innerHTML = html;
 }
