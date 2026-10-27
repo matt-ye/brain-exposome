@@ -53,7 +53,7 @@
     "bai_mci": {
       "label": "Bai 2022 — global MCI meta-analysis → MCI regional baseline",
       "mode": "manual", "current_version": "2022",
-      "url": "https://doi.org/10.1093/ageing/afac173"
+      "url": "https://pubmed.ncbi.nlm.nih.gov/35977150/"
     },
     "taiwan_moi_65plus": {
       "label": "🇹🇼 內政部戶政司 — Taiwan 65+ / super-aged (excluded from World Bank; overrides the aging layer)",
