@@ -1159,7 +1159,7 @@ def build_exposome():
 # a strong one exists. MCI criteria/age bands still vary → a modelled estimate, indicative only.
 BAI_MCI = {"EAS": 19.0, "ECS": 10.9, "LCN": 18.3, "MEA": 13.0, "NAC": 15.5, "SAS": 13.9, "SSF": 3.8}
 BAI_SRC = "Bai et al. 2022, Age & Ageing (WB-region meta-analysis, 50+)"
-BAI_URL = "https://doi.org/10.1093/ageing/afac173"
+BAI_URL = "https://pubmed.ncbi.nlm.nih.gov/35977150/"
 WB_REGION = {   # iso2 -> World Bank region id (from the World Bank country metadata)
     "AD":"ECS","AE":"MEA","AF":"MEA","AG":"LCN","AL":"ECS","AM":"ECS","AO":"SSF","AR":"LCN","AS":"EAS",
     "AT":"ECS","AU":"EAS","AW":"LCN","AZ":"ECS","BA":"ECS","BB":"LCN","BD":"SAS","BE":"ECS","BF":"SSF",
