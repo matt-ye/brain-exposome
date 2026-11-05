@@ -30,6 +30,7 @@ jobs:
         run: python scripts/check_data_freshness.py --out report.md
 
       - name: Scan the literature for new candidates
+        id: lit
         # Provider keys are optional — if unset, --triage is a no-op and every
         # candidate is kept (keyless). Add them as repo secrets to enable the
         # NIM → Groq → Cloudflare relevance filter (see scripts/.env.example).
@@ -60,8 +61,15 @@ jobs:
         run: |
           gh label create data-refresh --color 1d76db --description "Monthly upstream data check" 2>/dev/null || true
           month="$(date -u +%Y-%m)"
+          # A source that could not be reached must not read as "no changes".
+          failed=$(( ${{ steps.check.outputs.n_errors || 0 }} + ${{ steps.lit.outputs.n_failed || 0 }} ))
           if [ "${{ steps.check.outputs.has_updates }}" = "true" ]; then
             title="🔔 Data refresh — ${{ steps.check.outputs.n_updates }} update(s) — ${month}"
+            if [ "$failed" -gt 0 ]; then
+              title="${title} — ⚠️ incomplete (${failed} check(s) failed)"
+            fi
+          elif [ "$failed" -gt 0 ]; then
+            title="⚠️ Data refresh — ${month} — incomplete: ${failed} check(s) failed, re-run"
           else
             title="✅ Data refresh — ${month} (no API changes; skim manual sources)"
           fi
