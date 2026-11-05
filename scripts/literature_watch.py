@@ -40,6 +40,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+import http_retry
 import llm_triage
 import triage_rules
 
@@ -64,8 +65,7 @@ def epmc_search(query, since_iso, until_iso, page_size):
         "sort": "P_PDATE_D desc", "resultType": "core",   # core → includes abstractText for triage
     })
     req = urllib.request.Request(f"{EPMC}?{params}", headers=UA)
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-        d = json.loads(r.read().decode("utf-8", "replace"))
+    d = json.loads(http_retry.fetch(req, TIMEOUT).decode("utf-8", "replace"))
     return d.get("hitCount", 0), d.get("resultList", {}).get("result", [])
 
 
@@ -206,12 +206,14 @@ def main():
     triage_tried = 0      # a quiet month has nothing to score — not the same as a broken chain
 
     total_keep = 0
+    failed_topics = []
     for t in cfg["topics"]:
         label = t["label"]
         try:
             hits, results = epmc_search(t["query"], since_iso, until_iso, per_topic)
-        except (urllib.error.URLError, urllib.error.HTTPError, ValueError, TimeoutError) as e:
-            L.append(f"### {label}\n- ⚠️ could not check ({type(e).__name__})\n")
+        except (*http_retry.FETCH_ERRORS, ValueError) as e:
+            failed_topics.append(label)
+            L.append(f"### {label}\n- ⚠️ could not check ({http_retry.describe(e)})\n")
             continue
 
         keeps, drops = [], []
@@ -276,12 +278,25 @@ def main():
                           "comparison that ruled them out._\n")
     elif triaged_by:
         L[triage_line] = f"_🤖 LLM-triaged by {', '.join(sorted(triaged_by))}; drops are collapsed._\n"
+    elif not triage_tried and failed_topics:
+        L[triage_line] = "_🤖 Triage is on, but no paper was fetched to score._\n"
     elif not triage_tried:
         L[triage_line] = "_🤖 Triage is on, but there was nothing to score this month._\n"
     else:
         L[triage_line] = ("_⚠️ **Triage was requested but every provider failed** — nothing was "
                           "filtered and every candidate below is listed. Check the provider keys "
                           "and `scripts/llm_triage.py`._\n")
+
+    # A skipped scan is not a quiet month. The window only overlaps the next run by about
+    # two weeks, so older papers in a failed topic are never scanned unless this is re-run.
+    if failed_topics:
+        next_run = (until.replace(day=1) + datetime.timedelta(days=32)).replace(day=1)
+        blind = next_run - datetime.timedelta(days=window)
+        L.insert(triage_line, f"**⚠️ INCOMPLETE: {len(failed_topics)} of {len(cfg['topics'])} topics could "
+                              "not be checked, so their papers are NOT in this report.** Re-run this "
+                              "workflow (Actions → Run workflow). Next month's window starts at "
+                              f"{blind.isoformat()}: anything older in those topics is never scanned "
+                              "otherwise.\n")
 
     dedup = []
     if skipped_seen:
@@ -295,7 +310,8 @@ def main():
     elif dedup:
         L.append(f"_Skipped: {'; '.join(dedup)}._\n")
 
-    L.append(f"> {total_keep} candidate(s) to review across {len(cfg['topics'])} topics. "
+    checked = len(cfg["topics"]) - len(failed_topics)
+    L.append(f"> {total_keep} candidate(s) to review across {checked} of {len(cfg['topics'])} topics. "
              f"Queries live in `scripts/{config_name}`.")
 
     if args.seen_file:
@@ -312,7 +328,11 @@ def main():
             f.write(report)
     else:
         sys.stdout.buffer.write(report.encode("utf-8"))
-    print(f"\n[litwatch] {total_keep} kept across {len(cfg['topics'])} topics "
+    gh_out = os.environ.get("GITHUB_OUTPUT")
+    if gh_out:
+        with open(gh_out, "a", encoding="utf-8") as f:
+            f.write(f"n_failed={len(failed_topics)}\n")
+    print(f"\n[litwatch] {total_keep} kept across {checked}/{len(cfg['topics'])} topics "
           f"({since_iso}→{until_iso}) triage={'on' if do_triage else 'off'} "
           f"skipped_seen={skipped_seen} skipped_dup={skipped_dup}", file=sys.stderr)
 

@@ -183,6 +183,13 @@ raw 輸入放 gitignored `scripts/_data_in/`；`manifest.json` 由 build 產生�
 - **啟用方式**：把 dreamcatcher `.env` 的 `NVIDIA_API_KEY`／`GROQ_API_KEY`（＋可選 `CF_ACCOUNT_ID`+`CF_API_TOKEN` 走 Cloudflare REST）設為 repo secrets（`Settings → Secrets → Actions`）。範本見 `scripts/.env.example`。Cloudflare 這層在 Worker 裡是 `AI` binding、在 Action 裡改用 REST API。
 - ⚠️ 供應商現況（2026-07 研究）：**GitHub Models 已退役**、**ChatGPT/Codex 訂閱不能從 CI 呼叫**；Groq／NVIDIA／Cloudflare 三者皆 $0 免卡。
 
+### 5.5.1 上游失敗時的行為（2026-11，`scripts/http_retry.py`）
+- **起因**：2026-11 月跑（#39）Europe PMC 8 個主題與 WHO GHO 2 個指標全部 `HTTPError`，約 4 秒內失敗；幾天後從同樣的 Actions 環境重測全部 200。當時的狀態碼沒有記錄，**成因未確認**。
+- **重試**：兩支腳本的 HTTP 請求共用 `http_retry.fetch`，最多 3 次（間隔 5、30 秒，遵守 `Retry-After`，上限 120 秒）。403、408、425、429、5xx 與連線錯誤會重試；404 等永久錯誤不重試。
+- **留狀態碼**：報告寫 `HTTP 503 Service Unavailable`，不再只寫 `HTTPError`。
+- **失敗不偽裝成正常**：有任何檢查失敗時，issue 標題改成 `⚠️ ... incomplete`，文獻段開頭列出未檢查的主題數，文末寫「0 of 8 topics」。
+- **一定要重跑**：搜尋窗 45 天、每月一次，只重疊約 15 天。看到 ⚠️ 標題就到 Actions → Run workflow 重跑，否則該月較舊的論文之後永遠掃不到。報告會寫出下個月搜尋窗的起始日。
+
 ### 5.6 帳本比對 triage（2026-10，`literature-watch.json` 的 `ledger`）
 - **為什麼改**：舊 rubric 只問「這篇有沒有報告新盛行率」，模型不知道網站現在用什麼。8–10 月 6 次 issue 去重後 52 篇、留下 15 篇，真正能更新網站的只有 1 篇（韓國 Jung 2026）。被誤留的典型：中國 CMHS（資料 2013–15，網站已用 CHARLS 2018）、歐洲 GBD 2023（網站本來就用 GBD 2023）。**新論文 ≠ 新數據**。
 - **分工**：模型只把摘要讀成事實（`llm_triage.extract`：圖層、量測類型、一般族群或次族群、方法、國家、資料收集截止年、資料集名）；`scripts/triage_rules.py` 拿事實去比 `public/data/data-provenance.json` 裡該國該圖層的現用來源與資料年。

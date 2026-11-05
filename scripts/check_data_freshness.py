@@ -16,8 +16,9 @@ import datetime
 import json
 import os
 import sys
-import urllib.error
 import urllib.request
+
+import http_retry
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 VERSIONS = os.path.join(HERE, "data-versions.json")
@@ -27,8 +28,7 @@ TIMEOUT = 30
 
 def _get_json(url):
     req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-        return json.loads(r.read().decode("utf-8", "replace"))
+    return json.loads(http_retry.fetch(req, TIMEOUT).decode("utf-8", "replace"))
 
 
 def wb_latest_year(indicator):
@@ -58,8 +58,8 @@ def check_api(key, src, this_year):
             latest = gho_latest_year(src["indicator"], this_year)
         else:
             return "error", None, f"unknown api '{src['api']}'"
-    except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, TimeoutError) as e:
-        return "error", None, f"could not check ({type(e).__name__})"
+    except (*http_retry.FETCH_ERRORS, ValueError, KeyError) as e:
+        return "error", None, f"could not check ({http_retry.describe(e)})"
     if latest is None:
         return "error", None, "no year returned"
     if cur is None or latest > cur:
@@ -99,6 +99,9 @@ def main():
         for label, cur, latest, url, _ in updates:
             L.append(f"| {label} | {cur} | **{latest}** | [source]({url}) |")
         L.append("")
+    elif errors:   # silence from a source we could not reach is not "up to date"
+        L.append(f"### ⚠️ No newer data among the {len(oks)} API source(s) reached; "
+                 f"{len(errors)} could not be checked.\n")
     else:
         L.append("### ✅ No API source has newer data than what's recorded.\n")
 
@@ -159,6 +162,7 @@ def main():
         with open(gh_out, "a", encoding="utf-8") as f:
             f.write(f"has_updates={has_updates}\n")
             f.write(f"n_updates={len(updates)}\n")
+            f.write(f"n_errors={len(errors)}\n")
     print(f"\n[freshness] api-updates={len(updates)} ok={len(oks)} errors={len(errors)} manual={len(manual)}",
           file=sys.stderr)
 
