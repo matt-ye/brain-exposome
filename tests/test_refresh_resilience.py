@@ -118,7 +118,25 @@ class Reports(unittest.TestCase):
                 mock.patch.object(lw.llm_triage, "available", return_value=False):
             report, gh = self.run_main(lw, [])
         self.assertNotIn("INCOMPLETE", report)
+        self.assertNotIn("Only the newest", report)
         self.assertIn("n_failed=0", gh)
+
+    def scan_with_hits(self, extra):
+        """Every topic matches `extra` more papers than the page holds."""
+        def search(query, since, until, page_size):
+            page = [{"doi": f"10.1/{query[:40]}/{i}", "title": f"Paper {i}"} for i in range(page_size)]
+            return page_size + extra, page
+        with mock.patch.object(lw, "epmc_search", side_effect=search), \
+                mock.patch.object(lw.llm_triage, "available", return_value=False):
+            return self.run_main(lw, [])[0]
+
+    def test_papers_past_the_page_are_reported(self):
+        limit = json.load(open(lw.CONFIG, encoding="utf-8"))["max_per_topic"]
+        report = self.scan_with_hits(3)
+        self.assertIn(f"Only the newest {limit} of {limit + 3} were scanned; the older 3", report)
+
+    def test_a_full_page_with_nothing_beyond_is_not_truncation(self):
+        self.assertNotIn("Only the newest", self.scan_with_hits(0))
 
     def test_unreachable_api_source_is_not_called_up_to_date(self):
         with mock.patch.object(cdf, "_get_json", side_effect=http_error(403, "Forbidden")):

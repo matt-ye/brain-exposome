@@ -189,6 +189,7 @@ raw 輸入放 gitignored `scripts/_data_in/`；`manifest.json` 由 build 產生�
 - **留狀態碼**：報告寫 `HTTP 503 Service Unavailable`，不再只寫 `HTTPError`。
 - **失敗不偽裝成正常**：有任何檢查失敗時，issue 標題改成 `⚠️ ... incomplete`，文獻段開頭列出未檢查的主題數，文末寫「0 of 8 topics」。
 - **一定要重跑**：搜尋窗 45 天、每月一次，只重疊約 15 天。看到 ⚠️ 標題就到 Actions → Run workflow 重跑，否則該月較舊的論文之後永遠掃不到。報告會寫出下個月搜尋窗的起始日。
+- **每主題上限**：`max_per_topic` 從 6 調到 25（2026-11）。結果由新到舊排，超過上限的是搜尋窗裡最舊的，下個月也不會再掃到。危險因子主題 2026-09 有 14 篇、2026-10 有 11 篇，舊上限下只看了最新 6 篇。現在超過上限時，該主題會標「Only the newest N of M were scanned」，看到就調高上限再重跑。OT 主題集（`literature-watch.ot.json`）仍是 6。
 
 ### 5.6 帳本比對 triage（2026-10，`literature-watch.json` 的 `ledger`）
 - **為什麼改**：舊 rubric 只問「這篇有沒有報告新盛行率」，模型不知道網站現在用什麼。8–10 月 6 次 issue 去重後 52 篇、留下 15 篇，真正能更新網站的只有 1 篇（韓國 Jung 2026）。被誤留的典型：中國 CMHS（資料 2013–15，網站已用 CHARLS 2018）、歐洲 GBD 2023（網站本來就用 GBD 2023）。**新論文 ≠ 新數據**。
