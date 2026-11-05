@@ -263,6 +263,12 @@ def main():
         else:
             L.append(f"### {label}\n- none in the last {window} days\n")
 
+        # Results come newest first, so the ones past the page are the window's oldest, and
+        # next month's window has already moved past those. They would not come round again.
+        if hits > len(results):
+            L.append(f"- ⚠️ Only the newest {len(results)} of {hits} were scanned; the older "
+                     f"{hits - len(results)} are NOT in this report. Raise `max_per_topic` and re-run.\n")
+
         if t.get("manual_also"):
             L.append(f"  <sub>↳ {t.get('note', '')}</sub>")
             for m in t["manual_also"]:

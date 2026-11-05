@@ -3,7 +3,7 @@
   "ledger": "public/data/data-provenance.json",
   "_ledger_note": "With --triage, the LLM only reads each abstract into facts (layer, countries, data year, dataset); scripts/triage_rules.py keeps a paper only if its data are newer than what this ledger says the map uses for that country and layer. Remove `ledger` to fall back to the plain keep/drop rubric.",
   "days_window": 45,
-  "max_per_topic": 6,
+  "max_per_topic": 25,
   "topics": [
     {
       "id": "dementia_prevalence_global",
