@@ -2,9 +2,11 @@
 
 Run: python -m unittest tests/test_literature_watch.py
 """
+import http.client
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import literature_watch as lw  # noqa: E402
@@ -44,6 +46,13 @@ class ReadBack(unittest.TestCase):
 
 
 class SeenFromIssues(unittest.TestCase):
+    def test_a_dropped_connection_fails_open_with_reason(self):
+        env = {"GITHUB_REPOSITORY": "a/b", "GH_TOKEN": "x"}
+        for e in (ConnectionResetError("reset"), http.client.IncompleteRead(b"")):
+            with mock.patch.dict(os.environ, env), mock.patch.object(lw.http_retry, "fetch", side_effect=e):
+                keys, err = lw.seen_from_issues("data-refresh")
+            self.assertEqual((keys, err), (set(), type(e).__name__))
+
     def test_missing_env_fails_open_with_reason(self):
         saved = {k: os.environ.pop(k, None) for k in ("GITHUB_REPOSITORY", "GH_TOKEN", "GITHUB_TOKEN")}
         try:
