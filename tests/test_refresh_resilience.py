@@ -5,6 +5,7 @@ failed with HTTPError, and the issue still read "✅ no API changes" and "0 cand
 Run: python -m unittest tests/test_refresh_resilience.py
 """
 import email.message
+import http.client
 import io
 import json
 import os
@@ -92,6 +93,15 @@ class Describe(unittest.TestCase):
         self.assertEqual(http_retry.describe(TimeoutError()), "TimeoutError")
 
 
+class Triage(unittest.TestCase):
+    def test_a_provider_that_drops_the_connection_is_skipped(self):
+        for e in (ConnectionResetError("reset"), http.client.IncompleteRead(b"")):
+            with mock.patch.object(lw.llm_triage, "_post", side_effect=e), \
+                    mock.patch.object(lw.llm_triage, "list_models", side_effect=e):
+                self.assertIsNone(lw.llm_triage.triage("t", "a", env={
+                    "NVIDIA_API_KEY": "x", "GROQ_API_KEY": "x", "CF_ACCOUNT_ID": "x", "CF_API_TOKEN": "x"}))
+
+
 class Reports(unittest.TestCase):
     """Run each script's main() with upstream down; read the report and the Action outputs."""
 
@@ -120,6 +130,30 @@ class Reports(unittest.TestCase):
         self.assertNotIn("INCOMPLETE", report)
         self.assertNotIn("Only the newest", report)
         self.assertIn("n_failed=0", gh)
+
+    def scan_one_topic(self, papers, seen):
+        """Only the first topic finds `papers`; `seen` are the keys earlier issues listed."""
+        first = json.load(open(lw.CONFIG, encoding="utf-8"))["topics"][0]["query"]
+        with mock.patch.object(lw, "epmc_search",
+                               side_effect=lambda q, *a: (len(papers), papers) if q == first else (0, [])), \
+                mock.patch.object(lw, "seen_from_issues", return_value=(seen, None)), \
+                mock.patch.object(lw.llm_triage, "available", return_value=False):
+            report = self.run_main(lw, ["--seen-from-issues", "data-refresh"])[0]
+        return report.split("### ")[1]
+
+    def test_all_reported_already_is_not_an_empty_window(self):
+        papers = [{"doi": f"10.1/{i}", "title": f"Paper {i}"} for i in range(4)]
+        topic = self.scan_one_topic(papers, set().union(*map(lw.paper_keys, papers)))
+        self.assertIn("nothing new: 4 in the last", topic)
+        self.assertNotIn("none in the last", topic)
+
+    def test_heading_counts_only_papers_not_reported_before(self):
+        papers = [{"doi": f"10.1/{i}", "title": f"Paper {i}"} for i in range(9)]
+        topic = self.scan_one_topic(papers, set().union(*map(lw.paper_keys, papers[2:])))
+        self.assertIn("— 2 new", topic.splitlines()[0])
+
+    def test_an_empty_window_still_says_none(self):
+        self.assertIn("none in the last", self.scan_one_topic([], set()))
 
     def scan_with_hits(self, extra):
         """Every topic matches `extra` more papers than the page holds."""

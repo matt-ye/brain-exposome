@@ -27,8 +27,13 @@ run, not as the normal path.
 import json
 import os
 import re
-import urllib.error
 import urllib.request
+
+import http_retry
+
+# A provider that fails in any of these ways is skipped for the next one. FETCH_ERRORS also
+# covers a connection dropped mid-response, which urllib does not wrap in URLError.
+PROVIDER_ERRORS = (*http_retry.FETCH_ERRORS, ValueError, KeyError)
 
 TIMEOUT = 40
 
@@ -243,7 +248,7 @@ def candidates(provider, env):
         return [pinned]
     try:
         ranked = choose_model(provider, list_models(provider, env))
-    except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, TimeoutError):
+    except PROVIDER_ERRORS:
         ranked = []          # discovery is itself a network call, and it does fail
     return ranked + [m for m in _FALLBACK.get(provider, []) if m not in ranked]
 
@@ -278,7 +283,7 @@ def _openai_chat(provider, url, key, title, abstract, env, system=None, parse=No
             if v:
                 return _stamp(v, model, f"{provider} candidate")
             last = ValueError(f"{provider}: {model} returned no usable verdict")
-        except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, TimeoutError) as e:
+        except PROVIDER_ERRORS as e:
             last = e
     if last:
         raise last
@@ -316,7 +321,7 @@ def _cloudflare(title, abstract, env, system=None, parse=None):
             if v:
                 return _stamp(v, model, "cf candidate")
             last = ValueError(f"cf: {model} returned no usable verdict")
-        except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, TimeoutError) as e:
+        except PROVIDER_ERRORS as e:
             last = e
     if last:
         raise last
@@ -342,7 +347,7 @@ def triage(title, abstract="", env=None, system=None, parse=None):
             if v:
                 v["tier"] = fn.__name__.lstrip("_")
                 return v
-        except (urllib.error.URLError, urllib.error.HTTPError, ValueError, KeyError, TimeoutError):
+        except PROVIDER_ERRORS:
             continue
     return None
 

@@ -36,7 +36,6 @@ import os
 import re
 import sys
 import time
-import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -127,14 +126,13 @@ def seen_from_issues(label):
             q = urllib.parse.urlencode({"labels": label, "state": "all", "per_page": 100, "page": page})
             req = urllib.request.Request(f"{GH_API}/repos/{repo}/issues?{q}", headers={
                 **UA, "Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"})
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
-                batch = json.loads(r.read().decode("utf-8", "replace"))
+            batch = json.loads(http_retry.fetch(req, TIMEOUT).decode("utf-8", "replace"))
             for issue in batch:
                 keys |= keys_in_text(issue.get("body"))
             if len(batch) < 100:
                 break
-    except (urllib.error.URLError, urllib.error.HTTPError, ValueError, TimeoutError) as e:
-        return set(), type(e).__name__
+    except (*http_retry.FETCH_ERRORS, ValueError) as e:
+        return set(), http_retry.describe(e)
     return keys, None
 
 
@@ -248,7 +246,8 @@ def main():
         total_keep += len(keeps)
 
         if keeps:
-            L.append(f"### {label} — {hits} new" + (f", {len(keeps)} kept" if do_triage else ""))
+            L.append(f"### {label} — {len(keeps) + len(drops)} new"
+                     + (f", {len(keeps)} kept" if do_triage else ""))
             L.extend(keeps)
             if drops:
                 L.append(f"\n<details><summary>{len(drops)} filtered out by triage</summary>\n")
@@ -256,10 +255,13 @@ def main():
                 L.append("\n</details>")
             L.append("")
         elif drops:
-            L.append(f"### {label} — {hits} new, 0 kept")
+            L.append(f"### {label} — {len(drops)} new, 0 kept")
             L.append(f"<details><summary>{len(drops)} filtered out by triage</summary>\n")
             L.extend(drops)
             L.append("\n</details>\n")
+        elif results:                          # papers exist, but every one was skipped above
+            L.append(f"### {label}\n- nothing new: {len(results)} in the last {window} days, all already "
+                     "reported or listed in another topic\n")
         else:
             L.append(f"### {label}\n- none in the last {window} days\n")
 
