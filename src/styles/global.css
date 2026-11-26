@@ -6,9 +6,20 @@
   --color-text: #111111;
   --color-text-muted: #666666;
   --color-border: #e8e8e8;
-  --color-accent: #5b4fff;
-  --color-accent-hover: #3d31e0;
+  /* Palette follows mattye.dev (personal-website global.css): blue accent, plus a
+     foreground for text ON the accent, which has to flip between themes. */
+  --color-accent: #1d4ed8;
+  --color-accent-hover: #1e40af;
+  --color-accent-fg: #ffffff;
+  --color-accent-grad2: #0891b2;
   --color-tag-bg: #f0f4f8;
+
+  /* Semantic colours (same values as mattye.dev; contrast on white in comments).
+     Results use these instead of hard-coded greens/oranges/reds. */
+  --color-good:   #047857;   /* 5.48:1 */
+  --color-warn:   #b45309;   /* 5.02:1 */
+  --color-danger: #b91c1c;   /* 6.47:1 */
+  --color-neutral:#4b5563;   /* 7.56:1 */
 
   --card-bg: #ffffff;
   --card-border: #e8e8e8;
@@ -39,23 +50,44 @@
   --color-text: #eef1ff;
   --color-text-muted: #8b93bf;
   --color-border: rgba(255,255,255,.08);
-  --color-accent: #8b6cff;
-  --color-accent-hover: #a589ff;
+  /* Light blue on #0b0d18 (10.7:1); text on it must be dark (10.4:1). */
+  --color-accent: #93c5fd;
+  --color-accent-hover: #bfdbfe;
+  --color-accent-fg: #0b1220;
+  --color-accent-grad2: #22d3ee;
   --color-tag-bg: rgba(255,255,255,.06);
+
+  --color-good:   #6ee7b7;   /* 12.70:1 on #0b0d18 */
+  --color-warn:   #fcd34d;   /* 13.42:1 */
+  --color-danger: #fca5a5;   /* 10.20:1 */
+  --color-neutral:#9aa3c4;   /* 7.75:1 */
 
   --card-bg: linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
   --card-border: rgba(255,255,255,.08);
   --card-shadow: none;
-  --card-shadow-hover: 0 18px 40px -20px rgba(139,108,255,.35);
+  --card-shadow-hover: 0 18px 40px -20px rgba(59,130,246,.38);
 
-  --grad-1: linear-gradient(135deg, #8b6cff 0%, #14e0ff 100%);
-  --grad-2: linear-gradient(135deg, #ff5dd9 0%, #8b6cff 100%);
+  --grad-1: linear-gradient(135deg, #60a5fa 0%, #22d3ee 100%);
+  --grad-2: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
 }
 
 /* ===== Reset ===== */
 *, *::before, *::after { box-sizing: border-box; }
 * { margin: 0; padding: 0; }
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+
+/* ===== Platform defaults (Chrome "Modern Web Guidance", 2026-11) ===== */
+/* Native checkboxes, radios and range sliders take the theme accent. */
+html { accent-color: var(--color-accent); }
+/* One visible keyboard focus ring everywhere; :where() keeps it overridable. */
+:where(a, button, select, input, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent); outline-offset: 2px;
+}
+:where(h1, h2, h3, th) { text-wrap: balance; }
+:where(p, li, figcaption) { text-wrap: pretty; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
 
 body {
   font-family: var(--font-sans);
@@ -1800,7 +1832,7 @@ footer .container {
 .chip.active {
   background: var(--color-accent);
   border-color: var(--color-accent);
-  color: #fff;
+  color: var(--color-accent-fg);
   font-weight: 600;
 }
 
