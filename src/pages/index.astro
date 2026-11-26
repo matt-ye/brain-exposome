@@ -106,15 +106,17 @@ const extraLd = structuredData();
           <div class="form-grid">
             <label class="form-field">
               <span><T zh="年齡" en="Age (years)" /></span>
-              <input type="number" id="in-age" value="50" min="18" max="100" step="1" />
+              <input type="number" id="in-age" min="18" max="100" step="1" data-required aria-describedby="in-age-err" />
+              <p class="choice-error" id="in-age-err" hidden></p>
             </label>
-            <label class="form-field">
-              <span><T zh="生理性別" en="Sex" /></span>
-              <select id="in-sex">
-                <option value="female" data-zh="女性" data-en="Female">女性</option>
-                <option value="male" data-zh="男性" data-en="Male">男性</option>
-              </select>
-            </label>
+            <fieldset class="form-field choice" id="in-sex" data-required aria-describedby="in-sex-err">
+              <legend><T zh="生理性別" en="Sex" /></legend>
+              <p class="choice-error" id="in-sex-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-sex" value="female" /><span><T zh="女性" en="Female" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-sex" value="male" /><span><T zh="男性" en="Male" /></span></label>
+              </div>
+            </fieldset>
             <label class="form-field">
               <span><T zh="身高" en="Height" /> <em>(cm)</em></span>
               <input type="number" id="in-height" placeholder="165" min="120" max="220" step="0.5" />
@@ -124,17 +126,19 @@ const extraLd = structuredData();
               <input type="number" id="in-weight" placeholder="60" min="25" max="250" step="0.5" />
               <small class="field-hint" id="bmi-hint"><T zh="填了身高體重就會自動算 BMI，並帶入後面的體位選項（可自行修改）" en="Enter height & weight and we'll compute your BMI and pre-fill the body-weight question (you can override it)" /></small>
             </label>
-            <label class="form-field">
-              <span><T zh="教育程度" en="Education" /> <em><T zh="（認知存量）" en="(cognitive reserve)" /></em></span>
-              <select id="in-education">
-                <option value="tertiary" data-zh="大專以上" data-en="Tertiary or above">大專以上</option>
-                <option value="secondary" data-zh="高中職" data-en="Secondary (high school)">高中職</option>
-                <option value="primary" data-zh="國中以下" data-en="Primary or less">國中以下</option>
-              </select>
-              <small class="field-hint"><T zh="指早年正規教育年數；只有「國中以下」才計為風險。終身學習也能累積認知存量" en="Early-life schooling; only 'primary or less' counts as a risk. Lifelong learning also builds reserve" /></small>
-            </label>
+            <fieldset class="form-field choice" id="in-education" data-required aria-describedby="in-education-hint in-education-err">
+              <legend><T zh="教育程度" en="Education" /> <em><T zh="（認知存量）" en="(cognitive reserve)" /></em></legend>
+              <small class="field-hint" id="in-education-hint"><T zh="指早年正規教育年數；只有「國中以下」才計為風險。終身學習也能累積認知存量" en="Early-life schooling; only 'primary or less' counts as a risk. Lifelong learning also builds reserve" /></small>
+              <p class="choice-error" id="in-education-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-education" value="tertiary" /><span><T zh="大專以上" en="Tertiary or above" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-education" value="secondary" /><span><T zh="高中職" en="Secondary (high school)" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-education" value="primary" /><span><T zh="國中以下" en="Primary or less" /></span></label>
+              </div>
+            </fieldset>
           </div>
         </div>
+        <p class="step-missing" role="alert" hidden></p>
         <div class="wizard-nav">
           <span></span>
           <button type="button" class="wz-btn wz-next" data-goto="2"><T zh="下一步 →" en="Next →" /></button>
@@ -180,6 +184,7 @@ const extraLd = structuredData();
           </div>
           <p class="res-summary" id="res-summary"></p>
         </div>
+        <p class="step-missing" role="alert" hidden></p>
         <div class="wizard-nav">
           <button type="button" class="wz-btn wz-back" data-goto="1">← <T zh="上一步" en="Back" /></button>
           <button type="button" class="wz-btn wz-next" data-goto="3"><T zh="下一步 →" en="Next →" /></button>
@@ -192,44 +197,47 @@ const extraLd = structuredData();
         <p class="calc-section-desc"><T zh="不確定就選「不確定」，不會被算成風險。這些對應到 Lancet 委員會可調整的失智風險因子。" en="Pick 'Not sure' if you don't know — it won't be counted as a risk. These map to the Lancet Commission's modifiable dementia risk factors." /></p>
 
         <div class="calc-form-card">
-          <h3 class="calc-subheading"><T zh="❤️ 心血管代謝" en="❤️ Cardiometabolic" /></h3>
           <div class="form-grid">
-            <label class="form-field">
-              <span><T zh="高血壓" en="Hypertension" /></span>
-              <select id="in-htn">
-                <option value="no" data-zh="沒有" data-en="No">沒有</option>
-                <option value="yes" data-zh="有" data-en="Yes">有</option>
-                <option value="unknown" data-zh="不確定" data-en="Not sure">不確定</option>
-              </select>
-              <small class="field-hint"><T zh="經診斷高血壓，或血壓 ≥ 140/90 mmHg（中年高血壓與失智關聯最強）" en="Diagnosed, or BP ≥ 140/90 mmHg (midlife hypertension matters most)" /></small>
-            </label>
-            <label class="form-field">
-              <span><T zh="糖尿病" en="Diabetes" /></span>
-              <select id="in-diabetes">
-                <option value="no" data-zh="沒有" data-en="No">沒有</option>
-                <option value="yes" data-zh="有" data-en="Yes">有</option>
-                <option value="unknown" data-zh="不確定" data-en="Not sure">不確定</option>
-              </select>
-              <small class="field-hint"><T zh="經診斷，或 HbA1c ≥ 6.5% / 空腹血糖 ≥ 126 mg/dL" en="Diagnosed, or HbA1c ≥ 6.5% / fasting glucose ≥ 126 mg/dL" /></small>
-            </label>
-            <label class="form-field">
-              <span><T zh="體位（BMI）" en="Body weight (BMI)" /></span>
-              <select id="in-bmi">
-                <option value="normal" data-zh="正常或過輕" data-en="Normal or under">正常或過輕</option>
-                <option value="overweight" data-zh="過重" data-en="Overweight">過重</option>
-                <option value="obese" data-zh="肥胖（BMI ≥ 30）" data-en="Obese (BMI ≥ 30)">肥胖（BMI ≥ 30）</option>
-                <option value="unknown" data-zh="不確定" data-en="Not sure">不確定</option>
-              </select>
-              <small class="field-hint"><T zh="台灣：過重 BMI 24–27、肥胖 ≥ 27（國際肥胖為 ≥ 30）。中年肥胖較相關" en="Overweight BMI 24–27, obese ≥ 27 (Taiwan); ≥ 30 is the international obesity cutoff" /></small>
-            </label>
-            <label class="form-field">
-              <span><T zh="膽固醇（LDL 高不高）" en="Cholesterol (is LDL high)" /></span>
-              <select id="in-cholesterol">
-                <option value="normal" data-zh="正常或不確定" data-en="Normal or unsure">正常或不確定</option>
-                <option value="high" data-zh="LDL 偏高" data-en="High LDL">LDL 偏高</option>
-              </select>
-              <small class="field-hint"><T zh="不知道數值就用這裡；建議 LDL < 130 mg/dL" en="Use this if you don't know your number; aim for LDL < 130 mg/dL" /></small>
-            </label>
+            <fieldset class="form-field choice" id="in-htn" data-required aria-describedby="in-htn-hint in-htn-err">
+              <legend><T zh="高血壓" en="Hypertension" /></legend>
+              <small class="field-hint" id="in-htn-hint"><T zh="經診斷高血壓，或血壓 ≥ 140/90 mmHg（中年高血壓與失智關聯最強）" en="Diagnosed, or BP ≥ 140/90 mmHg (midlife hypertension matters most)" /></small>
+              <p class="choice-error" id="in-htn-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-htn" value="no" /><span><T zh="沒有" en="No" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-htn" value="yes" /><span><T zh="有" en="Yes" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-htn" value="unknown" /><span><T zh="不確定" en="Not sure" /></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="form-field choice" id="in-diabetes" data-required aria-describedby="in-diabetes-hint in-diabetes-err">
+              <legend><T zh="糖尿病" en="Diabetes" /></legend>
+              <small class="field-hint" id="in-diabetes-hint"><T zh="經診斷，或 HbA1c ≥ 6.5% / 空腹血糖 ≥ 126 mg/dL" en="Diagnosed, or HbA1c ≥ 6.5% / fasting glucose ≥ 126 mg/dL" /></small>
+              <p class="choice-error" id="in-diabetes-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-diabetes" value="no" /><span><T zh="沒有" en="No" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-diabetes" value="yes" /><span><T zh="有" en="Yes" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-diabetes" value="unknown" /><span><T zh="不確定" en="Not sure" /></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="form-field choice" id="in-bmi" data-required aria-describedby="in-bmi-hint in-bmi-err">
+              <legend><T zh="體位（BMI）" en="Body weight (BMI)" /></legend>
+              <small class="field-hint" id="in-bmi-hint"><T zh="台灣：過重 BMI 24–27、肥胖 ≥ 27（國際肥胖為 ≥ 30）。中年肥胖較相關" en="Overweight BMI 24–27, obese ≥ 27 (Taiwan); ≥ 30 is the international obesity cutoff" /></small>
+              <p class="choice-error" id="in-bmi-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-bmi" value="normal" /><span><T zh="正常或過輕" en="Normal or under" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-bmi" value="overweight" /><span><T zh="過重" en="Overweight" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-bmi" value="obese" /><span><T zh="肥胖（BMI ≥ 30）" en="Obese (BMI ≥ 30)" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-bmi" value="unknown" /><span><T zh="不確定" en="Not sure" /></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="form-field choice" id="in-cholesterol" data-required data-satisfied-by="in-ldl" aria-describedby="in-cholesterol-hint in-cholesterol-err">
+              <legend><T zh="膽固醇（LDL 高不高）" en="Cholesterol (is LDL high)" /></legend>
+              <small class="field-hint" id="in-cholesterol-hint"><T zh="不知道數值就用這裡；建議 LDL < 130 mg/dL" en="Use this if you don't know your number; aim for LDL < 130 mg/dL" /></small>
+              <p class="choice-error" id="in-cholesterol-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-cholesterol" value="normal" /><span><T zh="正常或不確定" en="Normal or unsure" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-cholesterol" value="high" /><span><T zh="LDL 偏高" en="High LDL" /></span></label>
+              </div>
+            </fieldset>
             <label class="form-field">
               <span><T zh="LDL 數值（選填，更精準）" en="LDL value (optional, more precise)" /></span>
               <div class="ldl-row">
@@ -241,17 +249,19 @@ const extraLd = structuredData();
               </div>
               <small class="field-hint"><T zh="建議 < 130 mg/dL（≈ 3.36 mmol/L）；心血管高風險者目標更低。台灣／美國檢驗單多為 mg/dL" en="Aim for < 130 mg/dL (≈ 3.36 mmol/L); lower if high cardiovascular risk. TW/US labs report mg/dL" /></small>
             </label>
-            <label class="form-field">
-              <span><T zh="身體活動" en="Physical activity" /></span>
-              <select id="in-inactive">
-                <option value="active" data-zh="每週規律運動" data-en="Regularly active">每週規律運動</option>
-                <option value="inactive" data-zh="很少運動" data-en="Rarely active">很少運動</option>
-              </select>
-              <small class="field-hint"><T zh="「規律」≈ 每週 ≥ 150 分鐘中等強度（如快走）。低於此算很少運動" en="'Regular' ≈ ≥ 150 min/week moderate (e.g. brisk walking); below that counts as rarely active" /></small>
-            </label>
+            <fieldset class="form-field choice" id="in-inactive" data-required aria-describedby="in-inactive-hint in-inactive-err">
+              <legend><T zh="身體活動" en="Physical activity" /></legend>
+              <small class="field-hint" id="in-inactive-hint"><T zh="「規律」≈ 每週 ≥ 150 分鐘中等強度（如快走）。低於此算很少運動" en="'Regular' ≈ ≥ 150 min/week moderate (e.g. brisk walking); below that counts as rarely active" /></small>
+              <p class="choice-error" id="in-inactive-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-inactive" value="active" /><span><T zh="每週規律運動" en="Regularly active" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-inactive" value="inactive" /><span><T zh="很少運動" en="Rarely active" /></span></label>
+              </div>
+            </fieldset>
           </div>
         </div>
 
+        <p class="step-missing" role="alert" hidden></p>
         <div class="wizard-nav">
           <button type="button" class="wz-btn wz-back" data-goto="2">← <T zh="上一步" en="Back" /></button>
           <button type="button" class="wz-btn wz-next" data-goto="4"><T zh="下一步 →" en="Next →" /></button>
@@ -264,57 +274,59 @@ const extraLd = structuredData();
         <p class="calc-section-desc"><T zh="不確定就選「不確定」，不會被算成風險。" en="Pick 'Not sure' if you don't know — it won't be counted as a risk." /></p>
 
         <div class="calc-form-card">
-          <h3 class="calc-subheading"><T zh="👂 感官" en="👂 Sensory" /></h3>
           <div class="form-grid">
-            <label class="form-field">
-              <span><T zh="聽力損失" en="Hearing loss" /></span>
-              <select id="in-hearing">
-                <option value="none" data-zh="沒有" data-en="No">沒有</option>
-                <option value="untreated" data-zh="有，未使用助聽器" data-en="Yes, untreated">有，未使用助聽器</option>
-                <option value="treated" data-zh="有，已矯治／戴助聽器" data-en="Yes, treated / aids">有，已矯治／戴助聽器</option>
-                <option value="unknown" data-zh="不確定" data-en="Not sure">不確定</option>
-              </select>
-              <small class="field-hint"><T zh="「未矯治」= 聽得吃力／需調大音量但沒戴助聽器。矯治後風險大幅下降" en="'Untreated' = struggle to hear but no hearing aid. Treating it lowers the risk a lot" /></small>
-            </label>
-            <label class="form-field">
-              <span><T zh="視力損失" en="Vision loss" /></span>
-              <select id="in-vision">
-                <option value="none" data-zh="沒有" data-en="No">沒有</option>
-                <option value="untreated" data-zh="有，未矯治" data-en="Yes, untreated">有，未矯治</option>
-                <option value="treated" data-zh="有，已矯治（眼鏡／手術）" data-en="Yes, corrected">有，已矯治（眼鏡／手術）</option>
-                <option value="unknown" data-zh="不確定" data-en="Not sure">不確定</option>
-              </select>
-              <small class="field-hint"><T zh="「未矯治」= 可治療的視力問題（如白內障）未處理。戴眼鏡／手術矯正即算已矯治" en="'Untreated' = treatable vision loss (e.g. cataract) left uncorrected. Glasses/surgery count as corrected" /></small>
-            </label>
+            <fieldset class="form-field choice" id="in-hearing" data-required aria-describedby="in-hearing-hint in-hearing-err">
+              <legend><T zh="聽力損失" en="Hearing loss" /></legend>
+              <small class="field-hint" id="in-hearing-hint"><T zh="「未矯治」= 聽得吃力／需調大音量但沒戴助聽器。矯治後風險大幅下降" en="'Untreated' = struggle to hear but no hearing aid. Treating it lowers the risk a lot" /></small>
+              <p class="choice-error" id="in-hearing-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-hearing" value="none" /><span><T zh="沒有" en="No" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-hearing" value="untreated" /><span><T zh="有，未使用助聽器" en="Yes, untreated" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-hearing" value="treated" /><span><T zh="有，已矯治／戴助聽器" en="Yes, treated / aids" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-hearing" value="unknown" /><span><T zh="不確定" en="Not sure" /></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="form-field choice" id="in-vision" data-required aria-describedby="in-vision-hint in-vision-err">
+              <legend><T zh="視力損失" en="Vision loss" /></legend>
+              <small class="field-hint" id="in-vision-hint"><T zh="「未矯治」= 可治療的視力問題（如白內障）未處理。戴眼鏡／手術矯正即算已矯治" en="'Untreated' = treatable vision loss (e.g. cataract) left uncorrected. Glasses/surgery count as corrected" /></small>
+              <p class="choice-error" id="in-vision-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-vision" value="none" /><span><T zh="沒有" en="No" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-vision" value="untreated" /><span><T zh="有，未矯治" en="Yes, untreated" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-vision" value="treated" /><span><T zh="有，已矯治（眼鏡／手術）" en="Yes, corrected" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-vision" value="unknown" /><span><T zh="不確定" en="Not sure" /></span></label>
+              </div>
+            </fieldset>
           </div>
 
-          <h3 class="calc-subheading"><T zh="🧠 心理健康" en="🧠 Mental health" /></h3>
           <div class="form-grid">
-            <label class="form-field">
-              <span><T zh="憂鬱症" en="Depression" /></span>
-              <select id="in-depression">
-                <option value="no" data-zh="沒有" data-en="No">沒有</option>
-                <option value="yes" data-zh="有（曾被診斷）" data-en="Yes (diagnosed)">有（曾被診斷）</option>
-                <option value="unknown" data-zh="不確定" data-en="Not sure">不確定</option>
-              </select>
-              <small class="field-hint"><T zh="曾被醫療診斷憂鬱症，或長期情緒低落／就醫用藥。偶爾心情不好不算" en="Diagnosed depression, or persistent low mood / treatment. Occasional low mood doesn't count" /></small>
-            </label>
+            <fieldset class="form-field choice" id="in-depression" data-required aria-describedby="in-depression-hint in-depression-err">
+              <legend><T zh="憂鬱症" en="Depression" /></legend>
+              <small class="field-hint" id="in-depression-hint"><T zh="曾被醫療診斷憂鬱症，或長期情緒低落／就醫用藥。偶爾心情不好不算" en="Diagnosed depression, or persistent low mood / treatment. Occasional low mood doesn't count" /></small>
+              <p class="choice-error" id="in-depression-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-depression" value="no" /><span><T zh="沒有" en="No" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-depression" value="yes" /><span><T zh="有（曾被診斷）" en="Yes (diagnosed)" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-depression" value="unknown" /><span><T zh="不確定" en="Not sure" /></span></label>
+              </div>
+            </fieldset>
           </div>
 
-          <h3 class="calc-subheading"><T zh="🤝 社會與認知" en="🤝 Social & cognitive" /></h3>
           <div class="form-grid">
-            <label class="form-field">
-              <span><T zh="社交孤立" en="Social isolation" /></span>
-              <select id="in-isolation">
-                <option value="connected" data-zh="常有社交往來" data-en="Socially connected">常有社交往來</option>
-                <option value="isolated" data-zh="較少與人往來" data-en="Socially isolated">較少與人往來</option>
-                <option value="unknown" data-zh="不確定" data-en="Not sure">不確定</option>
-              </select>
-              <small class="field-hint"><T zh="獨居、很少與家人朋友往來、缺乏規律社交活動 → 較孤立" en="Living alone, little contact with family/friends, few regular social activities → isolated" /></small>
-            </label>
+            <fieldset class="form-field choice" id="in-isolation" data-required aria-describedby="in-isolation-hint in-isolation-err">
+              <legend><T zh="社交孤立" en="Social isolation" /></legend>
+              <small class="field-hint" id="in-isolation-hint"><T zh="獨居、很少與家人朋友往來、缺乏規律社交活動 → 較孤立" en="Living alone, little contact with family/friends, few regular social activities → isolated" /></small>
+              <p class="choice-error" id="in-isolation-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-isolation" value="connected" /><span><T zh="常有社交往來" en="Socially connected" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-isolation" value="isolated" /><span><T zh="較少與人往來" en="Socially isolated" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-isolation" value="unknown" /><span><T zh="不確定" en="Not sure" /></span></label>
+              </div>
+            </fieldset>
           </div>
         </div>
 
+        <p class="step-missing" role="alert" hidden></p>
         <div class="wizard-nav">
           <button type="button" class="wz-btn wz-back" data-goto="3">← <T zh="上一步" en="Back" /></button>
           <button type="button" class="wz-btn wz-next" data-goto="5"><T zh="下一步 →" en="Next →" /></button>
@@ -327,36 +339,39 @@ const extraLd = structuredData();
         <p class="calc-section-desc"><T zh="最後幾題，填完就能看結果。" en="Last few questions — then you'll see your results." /></p>
 
         <div class="calc-form-card">
-          <h3 class="calc-subheading"><T zh="🚬 生活型態與外傷" en="🚬 Lifestyle & injury" /></h3>
           <div class="form-grid">
-            <label class="form-field">
-              <span><T zh="吸菸" en="Smoking" /></span>
-              <select id="in-smoking">
-                <option value="never" data-zh="從不吸菸" data-en="Never">從不吸菸</option>
-                <option value="former" data-zh="已戒菸" data-en="Former smoker">已戒菸</option>
-                <option value="current" data-zh="目前吸菸" data-en="Current smoker">目前吸菸</option>
-              </select>
-              <small class="field-hint"><T zh="任何時候戒菸都有幫助；戒菸後風險會隨時間下降" en="Quitting helps at any age; risk keeps falling after you stop" /></small>
-            </label>
-            <label class="form-field">
-              <span><T zh="飲酒" en="Alcohol" /></span>
-              <select id="in-alcohol">
-                <option value="moderate" data-zh="不喝或適量" data-en="None or moderate">不喝或適量</option>
-                <option value="heavy" data-zh="過量（每週 &gt; 21 份）" data-en="Heavy (&gt; 21 units/wk)">過量（每週 &gt; 21 份）</option>
-              </select>
-              <small class="field-hint"><T zh="過量 ≈ 每週 > 21 英制單位（≈ 每週 > 10 杯酒／2 瓶紅酒）" en="Heavy ≈ > 21 UK units/week (≈ > 10 drinks / 2 bottles of wine a week)" /></small>
-            </label>
-            <label class="form-field">
-              <span><T zh="頭部外傷" en="Head injury (TBI)" /></span>
-              <select id="in-tbi">
-                <option value="no" data-zh="沒有" data-en="No">沒有</option>
-                <option value="yes" data-zh="曾有明顯頭部外傷" data-en="Yes, significant TBI">曾有明顯頭部外傷</option>
-              </select>
-              <small class="field-hint"><T zh="曾因撞擊昏迷／就醫的明顯腦部外傷（如車禍、跌倒、運動撞擊）" en="A significant TBI with loss of consciousness / medical care (crash, fall, sports impact)" /></small>
-            </label>
+            <fieldset class="form-field choice" id="in-smoking" data-required aria-describedby="in-smoking-hint in-smoking-err">
+              <legend><T zh="吸菸" en="Smoking" /></legend>
+              <small class="field-hint" id="in-smoking-hint"><T zh="任何時候戒菸都有幫助；戒菸後風險會隨時間下降" en="Quitting helps at any age; risk keeps falling after you stop" /></small>
+              <p class="choice-error" id="in-smoking-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-smoking" value="never" /><span><T zh="從不吸菸" en="Never" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-smoking" value="former" /><span><T zh="已戒菸" en="Former smoker" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-smoking" value="current" /><span><T zh="目前吸菸" en="Current smoker" /></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="form-field choice" id="in-alcohol" data-required aria-describedby="in-alcohol-hint in-alcohol-err">
+              <legend><T zh="飲酒" en="Alcohol" /></legend>
+              <small class="field-hint" id="in-alcohol-hint"><T zh="過量 ≈ 每週 > 21 英制單位（≈ 每週 > 10 杯酒／2 瓶紅酒）" en="Heavy ≈ > 21 UK units/week (≈ > 10 drinks / 2 bottles of wine a week)" /></small>
+              <p class="choice-error" id="in-alcohol-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-alcohol" value="moderate" /><span><T zh="不喝或適量" en="None or moderate" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-alcohol" value="heavy" /><span><T zh="過量（每週 > 21 份）" en="Heavy (> 21 units/wk)" /></span></label>
+              </div>
+            </fieldset>
+            <fieldset class="form-field choice" id="in-tbi" data-required aria-describedby="in-tbi-hint in-tbi-err">
+              <legend><T zh="頭部外傷" en="Head injury (TBI)" /></legend>
+              <small class="field-hint" id="in-tbi-hint"><T zh="曾因撞擊昏迷／就醫的明顯腦部外傷（如車禍、跌倒、運動撞擊）" en="A significant TBI with loss of consciousness / medical care (crash, fall, sports impact)" /></small>
+              <p class="choice-error" id="in-tbi-err" hidden></p>
+              <div class="choice-opts">
+                <label class="choice-opt"><input type="radio" name="in-tbi" value="no" /><span><T zh="沒有" en="No" /></span></label>
+                <label class="choice-opt"><input type="radio" name="in-tbi" value="yes" /><span><T zh="曾有明顯頭部外傷" en="Yes, significant TBI" /></span></label>
+              </div>
+            </fieldset>
           </div>
         </div>
 
+        <p class="step-missing" role="alert" hidden></p>
         <div class="wizard-nav">
           <button type="button" class="wz-btn wz-back" data-goto="4">← <T zh="上一步" en="Back" /></button>
           <button type="button" class="wz-btn wz-next" data-goto="6"><T zh="看結果 →" en="See results →" /></button>
@@ -369,6 +384,8 @@ const extraLd = structuredData();
 
         <!-- Leads with where things stand (2026-11 design feedback): what is fine, what to
              do next, what to confirm; air quality apart; the brain-age figure comes after. -->
+        <div class="result-missing" id="out-missing" hidden></div>
+        <div class="result-missing" id="out-missing" hidden></div>
         <div class="result-profile" id="out-profile"></div>
         <div class="result-compare" id="out-compare" hidden></div>
         <div class="result-fine" id="out-fine"></div>
@@ -786,6 +803,47 @@ const extraLd = structuredData();
     .form-field input, .form-field select, .wz-btn, .rt-btn { min-block-size: 44px; }
   }
   .field-hint { display: block; font-weight: 400; font-size: 0.72rem; line-height: 1.4; color: var(--color-text-muted); margin-top: 0.1rem; }
+
+  /* Questions with 2–4 answers: every option visible as a button, one tap, nothing
+     preselected (NN/g, Baymard, GOV.UK: dropdowns are a poor fit below ~5 options).
+     Each question takes a full row, so the form reads as one column. */
+  .form-grid + .form-grid { margin-top: 1rem; }
+  .form-field.choice { grid-column: 1 / -1; border: 0; padding: 0; margin: 0; min-width: 0; }
+  .form-field.choice legend { padding: 0; margin-bottom: 0.25rem; font-weight: 600; }
+  .form-field.choice .field-hint { margin: 0 0 0.45rem; }
+  .choice-opts { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .choice-opt { position: relative; display: inline-flex; cursor: pointer; }
+  .choice-opt input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .choice-opt > span {
+    display: inline-flex; align-items: center; min-block-size: 44px; padding: 0.45rem 1rem;
+    border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-bg);
+    font-size: max(1rem, 1em); font-weight: 500; color: var(--color-text); line-height: 1.3;
+  }
+  .choice-opt:hover > span { border-color: var(--color-accent); }
+  .choice-opt input:checked + span {
+    border-color: var(--color-accent); color: var(--color-accent);
+    background: color-mix(in oklab, var(--color-accent) 12%, transparent); font-weight: 700;
+  }
+  .choice-opt input:checked + span::before { content: '✓'; margin-right: 0.35rem; }
+  .choice-opt input:focus-visible + span { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .choice-error { margin: 0 0 0.4rem; font-size: 0.85rem; font-weight: 600; color: var(--color-danger); }
+  .choice-error::before { content: '! '; }
+  .form-field.has-missing legend, .form-field.has-missing > span { color: var(--color-danger); }
+  .form-field.choice.has-missing { border-left: 3px solid var(--color-danger); padding-left: 0.75rem; }
+  .form-field.has-missing input[type="number"] { border-color: var(--color-danger); }
+  .step-missing {
+    margin: var(--spacing-md) 0 0; padding: 0.6rem 0.9rem; border-left: 4px solid var(--color-danger);
+    background: var(--color-surface); font-size: 0.9rem; color: var(--color-text);
+  }
+  .result-missing {
+    font-size: 0.95rem; line-height: 1.6; padding: 0.9rem 1.1rem; margin-bottom: var(--spacing-md);
+    border-left: 4px solid var(--color-warn); background: var(--color-surface);
+  }
+  .result-missing :global(.rp-sub) { display: block; font-size: 0.85rem; color: var(--color-text-muted); margin: 0.25rem 0 0.6rem; }
+  .result-missing :global(.rm-go) {
+    font: inherit; font-size: 0.9rem; cursor: pointer; padding: 0.5rem 1rem; min-block-size: 44px; border-radius: 999px;
+    border: 1px solid var(--color-accent); background: var(--color-accent); color: var(--color-accent-fg);
+  }
   /* LDL value + unit selector on one row */
   .ldl-row { display: flex; gap: 0.4rem; }
   .ldl-row input { flex: 1 1 auto; min-width: 0; }
@@ -1216,7 +1274,71 @@ import {
 const lang = () => document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
 const L = (zh, en) => lang() === 'en' ? en : zh;
 const $ = (id) => document.getElementById(id);
-const val = (id) => { const el = $(id); return el ? el.value : ''; };
+const val = (id) => {
+  const el = $(id);
+  if (!el) return '';
+  if (el.tagName === 'FIELDSET') { const c = el.querySelector('input:checked'); return c ? c.value : ''; }
+  return el.value;
+};
+/* Tick one option of a radio-group question (used when BMI pre-fills the body-weight answer). */
+function setChoice(id, value) {
+  const r = document.querySelector(`#${id} input[value="${value}"]`);
+  if (r) { r.checked = true; clearMissing($(id)); }
+}
+
+/* ── Unanswered questions (nothing is preselected) ──
+   "Next" checks the step it leaves; jumping ahead with the step pills (or the tour) is
+   allowed, and the result then says plainly which questions are still open. */
+function isAnswered(el) {
+  if (el.tagName === 'FIELDSET') {
+    if (el.querySelector('input:checked')) return true;
+    const alt = el.dataset.satisfiedBy && $(el.dataset.satisfiedBy);   // LDL value answers the LDL question
+    return !!(alt && alt.value.trim());
+  }
+  return el.value.trim() !== '';
+}
+function questionLabel(el) {
+  const holder = el.tagName === 'FIELDSET' ? el.querySelector('legend') : el.closest('.form-field')?.querySelector(':scope > span');
+  if (!holder) return el.id;
+  const c = holder.cloneNode(true);
+  c.querySelectorAll(lang() === 'en' ? '.lang-zh' : '.lang-en').forEach(n => n.remove());
+  return c.textContent.replace(/\s+/g, ' ').trim();
+}
+function missingIn(scope) {
+  return [...scope.querySelectorAll('[data-required]')].filter(el => !isAnswered(el));
+}
+function clearMissing(el) {
+  if (!el) return;
+  el.classList.remove('has-missing');
+  const err = $(el.id + '-err'); if (err) { err.hidden = true; err.textContent = ''; }
+  const step = el.closest('.wizard-step');
+  const box = step && step.querySelector('.step-missing');
+  if (box && !step.querySelector('.has-missing')) box.hidden = true;
+}
+function flagMissing(step, list) {
+  list.forEach(el => {
+    el.classList.add('has-missing');
+    const err = $(el.id + '-err');
+    if (err) { err.hidden = false; err.textContent = el.tagName === 'FIELDSET' ? L('請選一個答案', 'Choose an answer') : L('請填寫', 'Fill this in'); }
+  });
+  const box = step.querySelector('.step-missing');
+  if (box) {
+    box.hidden = false;
+    box.textContent = L(`還有 ${list.length} 題沒有回答：${list.map(questionLabel).join('、')}`,
+                        `${list.length} question${list.length > 1 ? 's' : ''} still unanswered: ${list.map(questionLabel).join(', ')}`);
+  }
+  const first = list[0];
+  const target = first.tagName === 'FIELDSET' ? first.querySelector('input') : first;
+  first.scrollIntoView({ block: 'center', behavior: reduceMotion() ? 'auto' : 'smooth' });
+  if (target) target.focus({ preventScroll: true });
+}
+/* Wizard "Next": stay on this step until its questions are answered. */
+function goNext(from, to) {
+  const step = document.querySelector(`.wizard-step[data-step="${from}"]`);
+  const missing = step ? missingIn(step) : [];
+  if (to > from && missing.length) { flagMissing(step, missing); return; }
+  showStep(to, { focus: true });
+}
 
 /* ── Verified constants (dementia-exposome research round 3-D §2) ──
    Relative risks: 2024 Lancet Commission (Livingston 2024) + underlying meta-analyses.
@@ -1781,6 +1903,12 @@ function renderCompare(sum, r) {
 function answerRows() {
   const rows = [];
   document.querySelectorAll('.wizard-step .form-field').forEach(fl => {
+    if (fl.tagName === 'FIELDSET') {
+      const c = fl.querySelector('input:checked');
+      const txt = c ? c.closest('label').querySelector(`.lang-${lang()}`) : null;
+      rows.push([questionLabel(fl), txt ? txt.textContent.trim() : L('未作答', 'Not answered')]);
+      return;
+    }
     const ctrl = fl.querySelector('select, input');
     const sp = fl.querySelector(':scope > span');
     if (!ctrl || !sp) return;
@@ -1824,6 +1952,10 @@ function setupResultTools() {
   const status = msg => { const s = $('rt-status'); if (s) s.textContent = msg; };
   $('rt-save')?.addEventListener('click', () => {
     if (!lastResult) return;
+    if (missingIn(document.querySelector('.wizard')).length) {
+      status(L('還有題目沒有回答，補完再記住，下次比較才準確。', 'Some questions are unanswered — finish them first so the next comparison is fair.'));
+      return;
+    }
     const h = addToHistory(loadHistory(), snapshot(summarize(lastResult.factors, currentAnswers()), lastResult));
     if (storeHistory(h)) {
       status(L(`已記在這台裝置（共 ${h.length} 次）。下次回來填完，就會看到和這次的比較。`,
@@ -1860,6 +1992,22 @@ function renderResults(r) {
   // 1) where things stand (LEAD): personal habits & health only — air quality is shown
   //    apart (see check-summary.mjs for why), and "not sure" is something to confirm.
   const sum = summarize(r.factors, currentAnswers());
+  const open = missingIn(document.querySelector('.wizard'));
+  const mBox = $('out-missing');
+  if (mBox) {
+    mBox.hidden = open.length === 0;
+    if (open.length) {
+      const firstStep = +open[0].closest('.wizard-step').dataset.step;
+      mBox.innerHTML = `<strong>${L(`還有 ${open.length} 題沒有回答，結果還不完整`, `${open.length} question${open.length > 1 ? 's are' : ' is'} still unanswered — the result is incomplete`)}</strong>`
+        + `<span class="rp-sub">${open.map(questionLabel).join(L('、', ', '))}</span>`
+        + `<button type="button" class="rt-btn rm-go">${L('回去作答', 'Answer them')}</button>`;
+      mBox.querySelector('.rm-go').addEventListener('click', () => {
+        showStep(firstStep);
+        const step = document.querySelector(`.wizard-step[data-step="${firstStep}"]`);
+        flagMissing(step, missingIn(step));
+      });
+    }
+  }
   const nI = sum.improve.length;
   const profileEl = $('out-profile');
   profileEl.className = 'result-profile ' + (nI <= 2 ? 'ok' : nI <= 5 ? 'warn' : 'bad');
@@ -2033,7 +2181,7 @@ function bmiCategory(bmi) {
 }
 function updateBmi() {
   const h = parseFloat(val('in-height')), w = parseFloat(val('in-weight'));
-  const hint = $('bmi-hint'), sel = $('in-bmi');
+  const hint = $('bmi-hint');
   const okIn = Number.isFinite(h) && Number.isFinite(w) && h > 50 && w > 10;
   if (!okIn) {
     if (hint) hint.textContent = L('填了身高體重就會自動算 BMI，並帶入後面的體位選項（可自行修改）',
@@ -2043,7 +2191,7 @@ function updateBmi() {
   const bmi = w / Math.pow(h / 100, 2);
   const cat = bmiCategory(bmi);
   const catTxt = { normal: L('正常或過輕', 'normal or under'), overweight: L('過重', 'overweight'), obese: L('肥胖', 'obese') }[cat];
-  if (sel) sel.value = cat;                       // drive the Step-3 question; user can still override
+  setChoice('in-bmi', cat);                       // drive the Step-3 question; user can still override
   if (hint) hint.innerHTML = L(
     `BMI ≈ <span class="bmi-out">${bmi.toFixed(1)}</span>（${catTxt}）— 已自動帶入後面的體位選項，可自行修改`,
     `BMI ≈ <span class="bmi-out">${bmi.toFixed(1)}</span> (${catTxt}) — pre-filled the body-weight question below; you can override it`);
@@ -2894,7 +3042,15 @@ async function setupProvenance() {
 }
 
 async function init() {
-  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showStep(+b.dataset.goto, { focus: true })));
+  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => {
+    const from = +b.closest('.wizard-step').dataset.step;
+    goNext(from, +b.dataset.goto);
+  }));
+  document.addEventListener('change', e => { const q = e.target.closest('[data-required]'); if (q) clearMissing(q); });
+  document.addEventListener('input', e => {
+    if (e.target.matches('[data-required]')) clearMissing(e.target);
+    if (e.target.id === 'in-ldl') clearMissing($('in-cholesterol'));
+  });
   document.querySelectorAll('.wizard-steps li').forEach(li => {
     li.setAttribute('role', 'button');
     li.setAttribute('tabindex', '0');
