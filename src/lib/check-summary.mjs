@@ -32,21 +32,23 @@ export const DONE_KEYS = ['smoking-former'];
 
 /* factors: computeResult().factors ([{key}]); answers: {fieldId: value}.
    A flagged item is "to improve"; an unflagged item answered "unknown" is "unsure";
-   everything else is "fine". */
+   an item with no answer at all ('' — nothing is preselected) is "missing", never
+   "fine"; everything else is "fine". */
 export function summarize(factors, answers = {}) {
   const flagged = new Set(factors.map(f => f.key));
-  const improve = [], unsure = [], fine = [];
+  const improve = [], unsure = [], fine = [], missing = [];
   for (const it of PERSONAL_ITEMS) {
     const hit = [it.key, ...(it.alt || [])].find(k => flagged.has(k));
     if (hit && !DONE_KEYS.includes(hit)) improve.push(hit);
     else if (hit) fine.push(hit);
+    else if (answers[it.field] === '') missing.push(it.key);
     else if (answers[it.field] === 'unknown') unsure.push(it.key);
     else fine.push(it.key);
   }
   const env = ENV_KEYS.filter(k => flagged.has(k));
   const n = improve.length;
   const band = n === 0 ? 'clear' : n <= 2 ? 'few' : n <= 5 ? 'several' : 'many';
-  return { improve, unsure, fine, env, band };
+  return { improve, unsure, fine, missing, env, band };
 }
 
 export function itemLabel(key, L) {
@@ -126,6 +128,8 @@ export function reportHtml(data, L) {
     `<p>${L('填寫日期', 'Date')}：${esc(date)}</p><p class="rpt-lead">${lead}</p></header>`,
     sum.improve.length ? sec(L('可以開始調整的項目', 'Worth working on'), `<ul>${li(sum.improve)}</ul>`) : '',
     sum.unsure.length ? sec(L('下次健檢可以順便確認', 'To check at your next health exam'), `<ul>${li(sum.unsure)}</ul>`) : '',
+    sum.missing && sum.missing.length ? sec(L('尚未作答', 'Not answered yet'),
+      `<p>${sum.missing.map(k => esc(itemLabel(k, L))).join('、')}</p>`) : '',
     sum.fine.length ? sec(L('已在建議範圍內', 'Already in the recommended range'),
       `<p>${sum.fine.map(k => esc(itemLabel(k, L))).join('、')}</p>`) : '',
     pm == null ? '' : sec(L('居住環境（空氣品質）', 'Where you live (air quality)'),

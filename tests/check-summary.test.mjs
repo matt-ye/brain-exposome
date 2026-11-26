@@ -32,6 +32,16 @@ const f = (...keys) => keys.map(key => ({ key }));
   assert.equal(s.band, 'few');
 }
 
+// Nothing is preselected: an unanswered item is "missing", never counted as fine.
+{
+  const s = summarize([], { 'in-htn': '', 'in-alcohol': '' });
+  assert.deepEqual(s.missing, ['htn', 'alcohol']);
+  assert.ok(!s.fine.includes('htn') && !s.fine.includes('alcohol'));
+  assert.equal(s.improve.length + s.unsure.length + s.fine.length + s.missing.length, PERSONAL_ITEMS.length);
+  const html = reportHtml({ date: 'd', sum: s, pm: null, brainAge: null }, zh);
+  assert.ok(html.includes('尚未作答') && html.includes('血壓'));
+}
+
 // Bands follow the personal count only.
 assert.equal(summarize(f('htn', 'diabetes', 'obesity'), {}).band, 'several');
 assert.equal(summarize(f('htn', 'diabetes', 'obesity', 'ldl', 'inactive', 'alcohol'), {}).band, 'many');
