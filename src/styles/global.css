@@ -2800,3 +2800,23 @@ footer .container {
 .johari tbody tr:last-child th { border-bottom: none; }
 .johari .j-desc { display: inline-block; margin-top: 0.2rem; color: var(--color-text-muted); font-size: 0.85em; line-height: 1.5; text-transform: none; }
 .johari-cap { font-size: 0.8rem; color: var(--color-text-muted); margin-top: 0.4rem; }
+
+/* Printable check-in report (index.astro → printReport). The page adds .printing-report to
+   <html> only while its own Report button prints, so an ordinary Ctrl+P still prints the page. */
+#print-report { display: none; }
+@media print {
+  html.printing-report body > *:not(#print-report) { display: none !important; }
+  html.printing-report #print-report {
+    display: block; color: #000; background: #fff; font-size: 11pt; line-height: 1.55;
+    font-family: system-ui, -apple-system, 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+  }
+  #print-report h1 { font-size: 18pt; margin: 0 0 0.2em; }
+  #print-report h2 { font-size: 12.5pt; margin: 1.1em 0 0.35em; border-bottom: 1px solid #999; padding-bottom: 0.15em; }
+  #print-report .rpt-lead { font-weight: 700; font-size: 12pt; }
+  #print-report ul { margin: 0.2em 0; padding-left: 1.3em; }
+  #print-report .rpt-sec { break-inside: avoid; }
+  #print-report .rpt-table { border-collapse: collapse; width: 100%; font-size: 10pt; }
+  #print-report .rpt-table th, #print-report .rpt-table td { border: 1px solid #bbb; padding: 0.25em 0.5em; text-align: left; vertical-align: top; }
+  #print-report .rpt-table th { width: 38%; font-weight: 600; background: #f3f3f3; }
+  #print-report .rpt-foot { margin-top: 1.4em; font-size: 9pt; color: #444; }
+}
