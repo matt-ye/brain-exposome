@@ -35,8 +35,8 @@ const extraLd = structuredData();
     <section class="calc-hero">
       <h1><T zh="腦健康 Exposome" en="Brain-Health Exposome" /> <span class="accent-text"><T zh="檢測" en="Check-in" /></span></h1>
       <p class="calc-tagline"><T
-        zh="輸入你的居住史與基本資料，看看累積的環境暴露（exposome）對應到多少「相對腦齡加速」年數。純前端計算，資料不上傳。"
-        en="Enter your residence history and basic profile to see how your accumulated exposome maps to a 'relative brain-aging' figure. Runs entirely in your browser — nothing is uploaded."
+        zh="花大約 5 分鐘，確認哪些腦健康習慣已經做得很好、哪些可以開始調整，也看看居住環境的空氣品質。純前端計算，資料不上傳。"
+        en="Take about 5 minutes to see which brain-health habits are already in good shape, which are worth working on, and how the air where you've lived adds up. Runs entirely in your browser — nothing is uploaded."
       /></p>
 
       <!-- Intro: three collapsible cards (story / privacy / disclaimer) — native <details>, no JS needed -->
@@ -62,6 +62,7 @@ const extraLd = structuredData();
         </div>
         <div class="intro-body" data-intro-panel="privacy" hidden>
             <p><T zh="所有計算都在你的瀏覽器內完成，資料不會上傳或儲存到任何伺服器。" en="All calculations run entirely in your browser — nothing is uploaded or stored on any server." /></p>
+            <p><T zh="結果頁的「記住這次結果」是選用的：按了才會把結果摘要（日期、哪些項目要調整）存在這台裝置的瀏覽器裡，方便下次比較；不含你填的原始答案，隨時可以清除。" en="'Remember this result' on the results page is optional: only if you press it is a summary (the date and which items to work on) kept in this device's browser, so next time you can compare. Your raw answers are not stored, and you can clear it anytime." /></p>
             <p><T zh="為了少填一步，第一段居住地的「國家」會依你目前的網路所在地或瀏覽器語系自動預設（不經第三方、不會索取定位權限），你可以隨時自行更改。" en="To save a step, the first residence's country is pre-filled from your current network location or browser locale (no third party, no location-permission prompt); you can change it anytime." /></p>
         </div>
         <div class="intro-body" data-intro-panel="warn" hidden>
@@ -364,10 +365,22 @@ const extraLd = structuredData();
 
       <!-- Step 6 — Results -->
       <section class="wizard-step" data-step="6">
-        <h2 class="section-heading">6. <T zh="你的結果" en="Your results" /></h2>
+        <h2 class="section-heading">6. <T zh="你的腦健康狀態" en="Your brain-health check-in" /></h2>
 
+        <!-- Leads with where things stand (2026-11 design feedback): what is fine, what to
+             do next, what to confirm; air quality apart; the brain-age figure comes after. -->
         <div class="result-profile" id="out-profile"></div>
+        <div class="result-compare" id="out-compare" hidden></div>
+        <div class="result-fine" id="out-fine"></div>
 
+        <h3 class="calc-subheading"><T zh="可以從這裡開始" en="Where to start" /></h3>
+        <ul class="action-list" id="out-actions"></ul>
+        <div class="result-unsure" id="out-unsure" hidden></div>
+
+        <h3 class="calc-subheading"><T zh="居住環境：空氣品質" en="Where you live: air quality" /></h3>
+        <div class="result-exposome" id="out-exposome"></div>
+
+        <h3 class="calc-subheading"><T zh="進階：教育性腦齡估計" en="More detail: educational brain-age estimate" /></h3>
         <div class="result-brainage">
           <div class="ba-label"><T zh="教育性「腦齡加速」估計" en="Educational 'brain-age acceleration' estimate" /></div>
           <div class="ba-gauge" id="out-gauge"></div>
@@ -386,10 +399,18 @@ const extraLd = structuredData();
         <figure class="cat-radar" id="out-radar"></figure>
         <div class="stat-list" id="out-categories"></div>
 
-        <div class="result-exposome" id="out-exposome"></div>
-
-        <h3 class="calc-subheading"><T zh="你的風險因子：說明與建議" en="Your flagged factors: what they mean & what to do" /></h3>
-        <ul class="action-list" id="out-actions"></ul>
+        <!-- Keep / share / print. Saving is opt-in and stays on this device. -->
+        <div class="result-tools">
+          <div class="rt-buttons">
+            <button type="button" class="rt-btn" id="rt-save"><T zh="💾 記住這次結果" en="💾 Remember this result" /></button>
+            <button type="button" class="rt-btn" id="rt-report"><T zh="🖨️ 報告（列印／存成 PDF）" en="🖨️ Report (print / save as PDF)" /></button>
+            <button type="button" class="rt-btn" id="rt-share"><T zh="💌 傳給家人" en="💌 Send to family" /></button>
+          </div>
+          <p class="rt-status" id="rt-status" aria-live="polite"></p>
+          <p class="rt-note"><T zh="建議每 3–6 個月，或每次健檢拿到報告後，回來再填一次，看看哪些地方有進步。「傳給家人」只傳這個網站的連結和邀請，不會帶出你的任何結果。" en="Come back every 3–6 months, or after each health check, to see what has improved. 'Send to family' shares only an invitation and this site's link — none of your results." />
+            <button type="button" class="rt-clear" id="rt-clear" hidden><T zh="清除這台裝置上的紀錄" en="Clear saved results on this device" /></button>
+          </p>
+        </div>
 
         <div class="wizard-nav">
           <button type="button" class="wz-btn wz-back" data-goto="5">← <T zh="修改答案" en="Edit answers" /></button>
@@ -877,6 +898,44 @@ const extraLd = structuredData();
   .result-profile.warn { border-left-color: #f5a623; }
   .result-profile.bad { border-left-color: #e5484d; }
   .result-profile .rp-sub { display: block; font-weight: 400; font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.4rem; }
+  .result-profile :global(.rp-sub) { display: block; font-weight: 400; font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.4rem; }
+
+  /* Check-in result (2026-11): comparison, what's fine, what to confirm, keep/share/print */
+  .result-compare {
+    font-size: 0.9rem; line-height: 1.6; padding: 0.8rem 1.1rem; margin-bottom: var(--spacing-md);
+    border: 1px dashed var(--color-accent); border-radius: var(--radius-md); background: var(--color-surface);
+  }
+  .result-compare :global(.rc-count) { margin-left: 0.6rem; color: var(--color-text-muted); font-size: 0.85rem; }
+  .result-compare :global(ul) { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+  .result-fine { margin-bottom: var(--spacing-md); }
+  .result-fine :global(.rf-title) { font-size: 0.85rem; color: var(--color-text-muted); margin-bottom: 0.4rem; }
+  .result-fine :global(.rf-chips) { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .result-fine :global(.rf-chip) {
+    font-size: 0.82rem; padding: 0.2rem 0.65rem; border-radius: 999px;
+    background: rgba(47, 191, 113, 0.12); color: var(--color-text); border: 1px solid rgba(47, 191, 113, 0.45);
+  }
+  .result-unsure {
+    font-size: 0.9rem; line-height: 1.6; margin-top: 0.75rem; padding: 0.75rem 1.1rem;
+    border-left: 4px solid #8b93bf; border-radius: var(--radius-sm); background: var(--color-surface);
+  }
+  .result-unsure :global(.rp-sub) { display: block; font-size: 0.82rem; color: var(--color-text-muted); margin-top: 0.3rem; }
+  .result-exposome :global(.ex-do) { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--color-border); }
+  .result-tools {
+    margin-top: var(--spacing-md); padding: 1rem 1.1rem; border-radius: var(--radius-md);
+    border: 1px solid var(--color-border); background: var(--color-surface);
+  }
+  .rt-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .rt-btn {
+    font: inherit; font-size: 0.9rem; cursor: pointer; padding: 0.5rem 0.95rem; border-radius: 999px;
+    border: 1px solid var(--card-border); background: var(--card-bg); color: var(--color-text);
+  }
+  .rt-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+  .rt-status { min-height: 1.2em; margin: 0.6rem 0 0; font-size: 0.85rem; color: var(--color-accent); word-break: break-word; }
+  .rt-note { margin: 0.3rem 0 0; font-size: 0.8rem; color: var(--color-text-muted); line-height: 1.6; }
+  .rt-clear {
+    font: inherit; font-size: 0.8rem; background: none; border: 0; padding: 0; margin-left: 0.3rem;
+    color: var(--color-text-muted); text-decoration: underline; cursor: pointer;
+  }
 
   .result-brainage {
     text-align: center; padding: 1.5rem 1.25rem; margin-bottom: var(--spacing-md);
@@ -1138,6 +1197,10 @@ const extraLd = structuredData();
 
 <script>
 import { dpTableHtml, makeRegionNamer } from '../lib/dp-table.mjs';
+import {
+  PERSONAL_ITEMS, summarize, itemLabel, snapshot, compareSnapshots, addToHistory,
+  parseHistory, shareMessage, reportHtml, localDate,
+} from '../lib/check-summary.mjs';
 
 /* ── i18n helpers (mirror the site-wide data-lang + langchange pattern) ── */
 const lang = () => document.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'zh';
@@ -1670,15 +1733,139 @@ function renderGauge(r) {
   </svg>`;
 }
 
+/* ── Personal check-in: answers, saved history (opt-in, this device only), share, report ── */
+const HISTORY_KEY = 'bx-checkin-history';
+function currentAnswers() {
+  const a = {};
+  PERSONAL_ITEMS.forEach(it => { a[it.field] = val(it.field); });
+  return a;
+}
+// Storage can be missing or throw (private windows, blocked site data): fail quietly.
+function loadHistory() { try { return parseHistory(localStorage.getItem(HISTORY_KEY)); } catch (e) { return []; } }
+function storeHistory(h) { try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); return true; } catch (e) { return false; } }
+
+/* Compare with the latest saved check from an earlier day (today's own save is not "last time"). */
+function renderCompare(sum, r) {
+  const box = $('out-compare');
+  const hist = loadHistory();
+  const clear = $('rt-clear');
+  if (clear) clear.hidden = hist.length === 0;
+  const today = localDate();
+  const prev = [...hist].reverse().find(s => s.t !== today);
+  if (!box) return;
+  if (!prev) { box.hidden = true; box.innerHTML = ''; return; }
+  const c = compareSnapshots(prev, snapshot(sum, r, today));
+  const names = ks => ks.map(k => itemLabel(k, L)).join(L('、', ', '));
+  const parts = [];
+  if (c.improved.length) parts.push(L(`進步了：${names(c.improved)} 👏`, `Improved: ${names(c.improved)} 👏`));
+  if (c.added.length) parts.push(L(`這次新出現：${names(c.added)}`, `New this time: ${names(c.added)}`));
+  if (c.resolvedUnsure.length) parts.push(L(`上次不確定、這次已確認：${names(c.resolvedUnsure)}`, `Confirmed since last time: ${names(c.resolvedUnsure)}`));
+  if (!parts.length) parts.push(L('和上次一樣，狀態穩定。', 'Same as last time — holding steady.'));
+  box.hidden = false;
+  box.innerHTML = `<strong>${L(`和 ${c.since} 那次相比`, `Compared with ${c.since}`)}</strong>`
+    + `<span class="rc-count">${L(`可以調整的項目 ${c.before} → ${c.now}`, `items to work on ${c.before} → ${c.now}`)}</span>`
+    + `<ul>${parts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+}
+
+/* Label → answer rows for the report, in the language on screen. */
+function answerRows() {
+  const rows = [];
+  document.querySelectorAll('.wizard-step .form-field').forEach(fl => {
+    const ctrl = fl.querySelector('select, input');
+    const sp = fl.querySelector(':scope > span');
+    if (!ctrl || !sp) return;
+    const c = sp.cloneNode(true);
+    c.querySelectorAll(lang() === 'en' ? '.lang-zh' : '.lang-en').forEach(n => n.remove());
+    const label = c.textContent.replace(/\s+/g, ' ').trim();
+    let v;
+    if (ctrl.tagName === 'SELECT') v = (ctrl.options[ctrl.selectedIndex]?.textContent || '').trim() || '—';
+    else {
+      v = ctrl.value || '—';
+      const unit = fl.querySelector('select');             // the LDL field carries its own unit picker
+      if (unit && ctrl.value) v += ' ' + unit.options[unit.selectedIndex].textContent.trim();
+    }
+    rows.push([label, v]);
+  });
+  const place = r => {
+    if (r.country !== 'TW') return countryLabel(r.country);
+    const c = (COUNTY_LIST.length ? COUNTY_LIST : FALLBACK_COUNTIES).find(x => x[0] === r.place);
+    return c ? L(c[1], c[2]) : L('臺灣', 'Taiwan');
+  };
+  normalizeResidences();
+  rows.push([L('居住史', 'Places lived'), residences.map(r => `${place(r)} ${r.from}–${r.to}`).join(L('；', '; '))]);
+  return rows;
+}
+
+function printReport(r) {
+  const sum = summarize(r.factors, currentAnswers());
+  const advice = {};
+  sum.improve.forEach(k => { if (ACTIONS[k]) advice[k] = L(ACTIONS[k][2], ACTIONS[k][3]); });
+  let box = $('print-report');
+  if (!box) { box = document.createElement('div'); box.id = 'print-report'; document.body.appendChild(box); }
+  box.innerHTML = reportHtml({
+    date: localDate(), sum, rows: answerRows(), advice, pm: r.meanPM, pmRef: PM_REF,
+    brainAge: r.dMid, url: location.origin + location.pathname,
+  }, L);
+  document.documentElement.classList.add('printing-report');   // print CSS shows only the report
+  window.print();
+}
+
+function setupResultTools() {
+  const status = msg => { const s = $('rt-status'); if (s) s.textContent = msg; };
+  $('rt-save')?.addEventListener('click', () => {
+    if (!lastResult) return;
+    const h = addToHistory(loadHistory(), snapshot(summarize(lastResult.factors, currentAnswers()), lastResult));
+    if (storeHistory(h)) {
+      status(L(`已記在這台裝置（共 ${h.length} 次）。下次回來填完，就會看到和這次的比較。`,
+               `Saved on this device (${h.length} in total). Next time you'll see how it compares.`));
+      const clear = $('rt-clear'); if (clear) clear.hidden = false;
+    } else {
+      status(L('這個瀏覽器不允許儲存（可能是無痕模式），可以改用「報告」存成 PDF。',
+               "This browser won't allow saving (private mode?) — use Report to keep a PDF instead."));
+    }
+  });
+  $('rt-clear')?.addEventListener('click', () => {
+    if (!confirm(L('確定清除這台裝置上的所有結果紀錄？', 'Clear all saved results on this device?'))) return;
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) { /* nothing to clear */ }
+    $('rt-clear').hidden = true;
+    const box = $('out-compare'); if (box) box.hidden = true;
+    status(L('已清除。', 'Cleared.'));
+  });
+  $('rt-share')?.addEventListener('click', async () => {
+    const text = shareMessage(location.origin + location.pathname, L);
+    if (navigator.share) {
+      try { await navigator.share({ title: document.title, text }); return; }
+      catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      status(L('邀請文字已複製，可以直接貼到 LINE 或簡訊裡。', 'Invitation copied — paste it into a message.'));
+    } catch (e) { status(text); }                          // no clipboard: show it to copy by hand
+  });
+  $('rt-report')?.addEventListener('click', () => { if (lastResult) printReport(lastResult); });
+  window.addEventListener('afterprint', () => document.documentElement.classList.remove('printing-report'));
+}
+
 function renderResults(r) {
-  // 1) categorical profile (LEAD)
+  // 1) where things stand (LEAD): personal habits & health only — air quality is shown
+  //    apart (see check-summary.mjs for why), and "not sure" is something to confirm.
+  const sum = summarize(r.factors, currentAnswers());
+  const nI = sum.improve.length;
   const profileEl = $('out-profile');
-  const bandTxt = { few: L('少數', 'a few'), several: L('數項', 'several'), many: L('多項', 'many') }[r.band];
-  const cls = r.band === 'few' ? 'ok' : r.band === 'several' ? 'warn' : 'bad';
-  profileEl.className = 'result-profile ' + cls;
-  profileEl.innerHTML = r.count === 0
-    ? `${L('目前沒有偵測到可調整的風險因子 — 很好！', 'No modifiable risk factors detected — great!')}<span class="rp-sub">${L('持續維持這些好習慣。', 'Keep up these healthy habits.')}</span>`
-    : `${L(`你目前有 ${r.count} 項可調整因子（${bandTxt}）。`, `You currently have ${r.count} modifiable factor${r.count > 1 ? 's' : ''} (${bandTxt}).`)}<span class="rp-sub">${L('針對這些因子採取行動，在族群層級與較低的失智風險相關。', 'Acting on these is associated with lower dementia risk at the population level.')}</span>`;
+  profileEl.className = 'result-profile ' + (nI <= 2 ? 'ok' : nI <= 5 ? 'warn' : 'bad');
+  profileEl.innerHTML = nI === 0
+    ? `${L('目前這 13 項生活與健康因子都在建議範圍內 ✓', 'All 13 lifestyle and health factors are in the recommended range ✓')}<span class="rp-sub">${L('繼續保持。建議每 3–6 個月或健檢後回來確認一次。', 'Keep it up — check back every 3–6 months or after a health check.')}</span>`
+    : `${L(`${sum.fine.length} 項已在建議範圍內，有 ${nI} 項可以開始調整`, `${sum.fine.length} already in the recommended range, ${nI} worth working on`)}<span class="rp-sub">${L('每一項下面都有具體可以做的事。調整這些因子，在研究中與較低的失智風險相關。', 'Each comes with something concrete to do. Acting on these is associated with lower dementia risk in research.')}</span>`;
+  const names = ks => ks.map(k => itemLabel(k, L)).join(L('、', ', '));
+  $('out-fine').innerHTML = sum.fine.length
+    ? `<div class="rf-title">${L('已在建議範圍內', 'Already in the recommended range')}</div><div class="rf-chips">${sum.fine.map(k => `<span class="rf-chip">✓ ${itemLabel(k, L)}</span>`).join('')}</div>`
+    : '';
+  const un = $('out-unsure');
+  un.hidden = sum.unsure.length === 0;
+  un.innerHTML = sum.unsure.length
+    ? `<strong>${L('下次健檢可以順便確認', 'To check at your next health exam')}：</strong>${names(sum.unsure)}<span class="rp-sub">${L('不確定的項目不會被算成風險；確認之後回來再填一次，結果會更完整。', "Unsure items aren't counted as risks; once you know, come back and the picture will be more complete.")}</span>`
+    : '';
+  renderCompare(sum, r);
 
   // 2) brain-age gap (secondary, clearly educational) + a transparent derivation
   $('out-brainage').textContent = `≈ +${r.dMid.toFixed(1)} ${L('年', 'yr')}`;
@@ -1742,18 +1929,23 @@ function renderResults(r) {
       `someone meeting the WHO guideline for the same span would be just ${whoCum.toLocaleString()} µg/m³·years — you are about <strong>${mult}×</strong> that.<br>` +
       `<em>PM2.5 uses ACAG satellite annual data (V6.GL.03, 1998–2024); residence years before 1998 reuse the 1998 value.</em>`
     );
+    // Environmental, so it is not one of "your" items above — but there is still something to do.
+    ex.innerHTML += `<div class="ex-do">${L(
+      `這是大環境因素，世界上大多數地區（包括台灣）都高於 WHO 建議值，所以沒有算進上面「可以開始調整」的項目。個人仍可以降低暴露：${ACTIONS.pm25[2]}`,
+      `This is an environmental factor — most places in the world, Taiwan included, are above the WHO guideline — so it isn't counted among the items above. You can still lower your own exposure: ${ACTIONS.pm25[3]}`)}</div>`;
   } else { ex.style.display = 'none'; }
 
   // 5) actions
   const seen = new Set();
-  const items = r.factors.map(f => f.key).filter(k => { if (seen.has(k) || !ACTIONS[k]) return false; seen.add(k); return true; });
+  // Same list as the summary's "worth working on" (no air quality, no already-quit smoking).
+  const items = sum.improve.filter(k => { if (seen.has(k) || !ACTIONS[k]) return false; seen.add(k); return true; });
   const yourVal = (k) => {
     if (k === 'pm25' && r.meanPM != null) return `${r.meanPM.toFixed(1)} µg/m³`;
     if (k === 'ldl' && r.ldl) return `${r.ldl.num} ${r.ldl.unit === 'mmol' ? 'mmol/L' : 'mg/dL'}`;
     return '';
   };
   $('out-actions').innerHTML = items.length === 0
-    ? `<li class="act-none">${L('沒有需要優先處理的可調整因子 — 繼續保持健康的生活型態與環境。', 'No priority modifiable factors — keep up a healthy lifestyle and environment.')}</li>`
+    ? `<li class="act-none">${L('目前沒有需要調整的項目 — 繼續保持現在的生活習慣。', 'Nothing to work on right now — keep up your current habits.')}</li>`
     : items.map(k => {
         const a = ACTIONS[k], info = FACTOR_INFO[k];
         const name = FACTOR_LABELS[k] ? L(FACTOR_LABELS[k][0], FACTOR_LABELS[k][1]) : k;
@@ -2754,6 +2946,7 @@ async function init() {
   applyOptionLangs();
   renderResidences();
   fitWizardHeight();
+  setupResultTools();
   window.addEventListener('langchange', () => {
     applyOptionLangs();
     renderResidences();
