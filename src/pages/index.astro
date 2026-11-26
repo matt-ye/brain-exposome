@@ -776,10 +776,15 @@ const extraLd = structuredData();
     color: var(--color-text);
     padding: 0.55rem 0.7rem;
     border-radius: var(--radius-sm);
-    font-size: 0.92rem;
+    font-size: max(1rem, 1em);          /* below 16px, iOS Safari zooms the page on focus */
     font-family: var(--font-sans);
   }
   .form-field input:focus, .form-field select:focus { border-color: var(--color-accent); outline: none; }
+  .form-field input:focus-visible, .form-field select:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+  /* Touch: comfortable targets for older hands */
+  @media (pointer: coarse) {
+    .form-field input, .form-field select, .wz-btn, .rt-btn { min-block-size: 44px; }
+  }
   .field-hint { display: block; font-weight: 400; font-size: 0.72rem; line-height: 1.4; color: var(--color-text-muted); margin-top: 0.1rem; }
   /* LDL value + unit selector on one row */
   .ldl-row { display: flex; gap: 0.4rem; }
@@ -817,8 +822,8 @@ const extraLd = structuredData();
     background: var(--color-bg); border: 1px solid var(--color-border);
     font-size: 0.75rem; flex-shrink: 0;
   }
-  .wizard-steps li.is-active .wz-dot { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
-  .wizard-steps li.is-done .wz-dot { background: var(--color-accent); color: #fff; border-color: var(--color-accent); }
+  .wizard-steps li.is-active .wz-dot { background: var(--color-accent); color: var(--color-accent-fg); border-color: var(--color-accent); }
+  .wizard-steps li.is-done .wz-dot { background: var(--color-accent); color: var(--color-accent-fg); border-color: var(--color-accent); }
 
   /* Equal-ish step heights so switching steps doesn't resize the page under you.
      min-height is set at runtime (fitWizardHeight) to the tallest step; this is the floor. */
@@ -831,7 +836,7 @@ const extraLd = structuredData();
   .wz-btn {
     font-family: var(--font-sans); font-size: 0.9rem; font-weight: 600;
     padding: 0.6rem 1.2rem; border-radius: var(--radius-sm); cursor: pointer;
-    border: 1px solid var(--color-accent); background: var(--color-accent); color: #fff;
+    border: 1px solid var(--color-accent); background: var(--color-accent); color: var(--color-accent-fg);
   }
   .wz-btn:hover { background: var(--color-accent-hover); border-color: var(--color-accent-hover); }
   .wz-btn.wz-back { background: transparent; color: var(--color-text-muted); border-color: var(--color-border); }
@@ -871,7 +876,7 @@ const extraLd = structuredData();
     background: transparent; border: none; color: var(--color-text-muted); cursor: pointer;
     font-size: 1rem; padding: 0.2rem 0.4rem; border-radius: var(--radius-sm);
   }
-  .res-del:hover { color: #e5484d; background: var(--color-surface); }
+  .res-del:hover { color: var(--color-danger); background: var(--color-surface); }
   /* drag handle — rows reorder by drag (time slots stay, places move) */
   .res-table :global(.res-drag) {
     cursor: grab; color: var(--color-text-muted); user-select: none;
@@ -894,9 +899,13 @@ const extraLd = structuredData();
     border: 1px solid var(--color-border); border-left: 4px solid var(--color-accent);
     background: var(--color-surface); margin-bottom: var(--spacing-md);
   }
-  .result-profile.ok { border-left-color: #2fbf71; }
-  .result-profile.warn { border-left-color: #f5a623; }
-  .result-profile.bad { border-left-color: #e5484d; }
+  .result-profile.ok { border-left-color: var(--color-good); }
+  .result-profile.warn { border-left-color: var(--color-warn); }
+  .result-profile.bad { border-left-color: var(--color-danger); }
+  .result-profile::before { margin-right: 0.45rem; font-weight: 700; }
+  .result-profile.ok::before { content: '✓'; color: var(--color-good); }
+  .result-profile.warn::before, .result-profile.bad::before { content: '→'; color: var(--color-warn); }
+  .result-profile.bad::before { color: var(--color-danger); }
   .result-profile .rp-sub { display: block; font-weight: 400; font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.4rem; }
   .result-profile :global(.rp-sub) { display: block; font-weight: 400; font-size: 0.85rem; color: var(--color-text-muted); margin-top: 0.4rem; }
 
@@ -912,11 +921,12 @@ const extraLd = structuredData();
   .result-fine :global(.rf-chips) { display: flex; flex-wrap: wrap; gap: 0.4rem; }
   .result-fine :global(.rf-chip) {
     font-size: 0.82rem; padding: 0.2rem 0.65rem; border-radius: 999px;
-    background: rgba(47, 191, 113, 0.12); color: var(--color-text); border: 1px solid rgba(47, 191, 113, 0.45);
+    background: color-mix(in oklab, var(--color-good) 12%, transparent); color: var(--color-text);
+    border: 1px solid color-mix(in oklab, var(--color-good) 45%, transparent);
   }
   .result-unsure {
     font-size: 0.9rem; line-height: 1.6; margin-top: 0.75rem; padding: 0.75rem 1.1rem;
-    border-left: 4px solid #8b93bf; border-radius: var(--radius-sm); background: var(--color-surface);
+    border-left: 4px solid var(--color-neutral); border-radius: var(--radius-sm); background: var(--color-surface);
   }
   .result-unsure :global(.rp-sub) { display: block; font-size: 0.82rem; color: var(--color-text-muted); margin-top: 0.3rem; }
   .result-exposome :global(.ex-do) { margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--color-border); }
@@ -1056,7 +1066,7 @@ const extraLd = structuredData();
     border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text-muted);
   }
   .calc-provenance :global(.dp-tab:hover) { border-color: var(--color-accent); color: var(--color-text); }
-  .calc-provenance :global(.dp-tab.is-active) { border-color: var(--color-accent); color: #fff; background: var(--color-accent); }
+  .calc-provenance :global(.dp-tab.is-active) { border-color: var(--color-accent); color: var(--color-accent-fg); background: var(--color-accent); }
   .dp-controls { display: flex; gap: 0.9rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem; }
   .dp-filter {
     font: inherit; font-size: 0.85rem; padding: 0.35rem 0.6rem; border-radius: 8px;
@@ -1714,7 +1724,7 @@ function renderGauge(r) {
   const el = $('out-gauge');
   if (!el) return;
   const GMAX = 12, t = Math.max(0, Math.min(1, r.dMid / GMAX));   // GMAX matches the ±12-yr cap
-  const color = r.band === 'few' ? '#2fbf71' : r.band === 'several' ? '#f5a623' : '#e5484d';
+  const color = r.band === 'few' ? 'var(--color-good)' : r.band === 'several' ? 'var(--color-warn)' : 'var(--color-danger)';
   const cx = 100, cy = 104, rad = 82;
   const P = deg => [cx + rad * Math.cos(deg * Math.PI / 180), cy + rad * Math.sin(deg * Math.PI / 180)];
   const arc = (a0, a1) => {
@@ -1990,13 +2000,15 @@ function fitWizardHeight() {
   if (active) active.classList.add('is-active');
 }
 
-function showStep(n) {
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function showStep(n, { focus = false } = {}) {
   currentStep = n;
   document.querySelectorAll('.wizard-step').forEach(s => s.classList.toggle('is-active', +s.dataset.step === n));
   document.querySelectorAll('.wizard-steps li').forEach(li => {
     const s = +li.dataset.step;
     li.classList.toggle('is-active', s === n);
     li.classList.toggle('is-done', s < n);
+    if (s === n) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
   });
   if (n === 2) renderResidences();   // re-derive the year range from the age just entered in Step 1
   if (n === RESULT_STEP) { lastResult = computeResult(); renderResults(lastResult); }
@@ -2004,7 +2016,12 @@ function showStep(n) {
   const pill = document.querySelector(`.wizard-steps li[data-step="${n}"]`);
   if (pill && pill.scrollIntoView) pill.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   const wiz = document.querySelector('.wizard');
-  if (wiz) window.scrollTo({ top: wiz.getBoundingClientRect().top + window.scrollY - headerOffset(), behavior: 'smooth' });
+  if (wiz) window.scrollTo({ top: wiz.getBoundingClientRect().top + window.scrollY - headerOffset(), behavior: reduceMotion() ? 'auto' : 'smooth' });
+  // Keyboard and screen-reader users land on the new step's heading, not back at the old button.
+  if (focus) {
+    const h = document.querySelector(`.wizard-step[data-step="${n}"] .section-heading`);
+    if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+  }
 }
 
 /* ── BMI from height+weight (Step 1) → auto-selects the body-weight option (Step 3).
@@ -2877,11 +2894,11 @@ async function setupProvenance() {
 }
 
 async function init() {
-  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showStep(+b.dataset.goto)));
+  document.querySelectorAll('[data-goto]').forEach(b => b.addEventListener('click', () => showStep(+b.dataset.goto, { focus: true })));
   document.querySelectorAll('.wizard-steps li').forEach(li => {
     li.setAttribute('role', 'button');
     li.setAttribute('tabindex', '0');
-    const go = () => showStep(+li.dataset.step);
+    const go = () => showStep(+li.dataset.step, { focus: true });
     li.addEventListener('click', go);
     li.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }

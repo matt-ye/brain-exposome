@@ -81,6 +81,8 @@ const jsonLd = { '@context': 'https://schema.org', '@graph': [personLd, websiteL
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Both themes are supported; the data-theme script below picks one before render. -->
+    <meta name="color-scheme" content="light dark" />
     <meta name="generator" content={Astro.generator} />
 
     <!-- Prevent flash of wrong theme (runs before render) -->
